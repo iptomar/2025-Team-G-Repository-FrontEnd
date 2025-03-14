@@ -1,0 +1,77 @@
+.App {
+  text-align: center;
+  font-family: Arial, sans-serif;
+}
+
+.App-header {
+  background-color: #282c34;
+  padding: 10px;
+  color: white;
+}
+
+.App-header h1 {
+  margin: 0;
+  font-size: 24px;
+}
+
+.calendar-container {
+  margin: 20px auto;
+  max-width: 1200px;
+  background-color: white;
+  border-radius: 8px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  padding: 20px;
+}
+
+.fc {
+  background-color: white;
+}
+
+.fc-toolbar {
+  background-color: #f8f9fa;
+  border-bottom: 1px solid #dee2e6;
+  padding: 10px;
+  border-radius: 8px 8px 0 0;
+}
+
+.fc-button {
+  background-color: #007bff;
+  border: none;
+  color: white;
+  padding: 5px 10px;
+  border-radius: 4px;
+  margin: 0 5px;
+}
+
+.fc-button:hover {
+  background-color: #0056b3;
+}
+
+.fc-button:focus {
+  outline: none;
+  box-shadow: none;
+}
+
+.fc-daygrid-event {
+  background-color: #007bff;
+  border: none;
+  color: white;
+  padding: 5px;
+  border-radius: 4px;
+}
+
+.fc-daygrid-event:hover {
+  background-color: #0056b3;
+}
+
+.fc-daygrid-day-number {
+  color: #007bff;
+}
+
+.fc-daygrid-day.fc-day-today {
+  background-color: #e9ecef;
+}
+
+.fc-timegrid-event .fc-event-title {
+  white-space: pre-wrap;
+}
