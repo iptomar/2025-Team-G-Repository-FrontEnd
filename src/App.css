@@ -1,13 +1,18 @@
+body {
+  font-family: Arial, sans-serif;
+  background-color: #f0f2f5;
+  margin: 0;
+  padding: 0;
+}
+
 .App {
   text-align: center;
   font-family: Arial, sans-serif;
 }
 
 .App-header {
-  background-color: #282c34;
-  padding: 10px;
+  background-color: #4CAF50;
   color: white;
-  
 }
 
 .App-header h1 {
@@ -16,12 +21,12 @@
 }
 
 .calendar-container {
-  margin: 20px auto;
-  max-width: 1200px;
+  padding: 20px;
   background-color: white;
   border-radius: 8px;
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-  padding: 20px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  max-width: 900px;
+  margin: 20px auto;
 }
 
 .fc {
@@ -29,28 +34,52 @@
 }
 
 .fc-toolbar {
-  background-color: #f8f9fa;
-  border-bottom: 1px solid #dee2e6;
-  padding: 10px;
+  background-color: #4CAF50;
+  color: white;
   border-radius: 8px 8px 0 0;
+  padding: 10px;
 }
 
 .fc-button {
-  background-color: #007bff;
+  background-color: white;
+  color: #4CAF50;
   border: none;
-  color: white;
-  padding: 5px 10px;
   border-radius: 4px;
+  padding: 5px 10px;
   margin: 0 5px;
+  cursor: pointer;
 }
 
 .fc-button:hover {
-  background-color: #0056b3;
+  background-color: #45a049;
+  color: white;
 }
 
 .fc-button:focus {
   outline: none;
   box-shadow: none;
+}
+
+.fc-button-primary {
+  background-color: #4CAF50;
+  color: white;
+}
+
+.fc-button-primary:hover {
+  background-color: #45a049;
+}
+
+.fc-view-harness {
+  border-radius: 0 0 8px 8px;
+}
+
+.fc-timegrid-slot-label {
+  background-color: #f0f2f5;
+  border-right: 1px solid #ddd;
+}
+
+.fc-timegrid-slot {
+  border-bottom: 1px solid #ddd;
 }
 
 .fc-daygrid-event {
@@ -75,4 +104,16 @@
 
 .fc-timegrid-event .fc-event-title {
   white-space: pre-wrap;
+}
+
+.fc-event {
+  background-color: #4CAF50;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  padding: 5px;
+}
+
+.fc-event:hover {
+  background-color: #45a049;
 }
