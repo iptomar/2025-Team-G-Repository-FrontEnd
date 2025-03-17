@@ -8,8 +8,8 @@ import './App.css';
 
 function App() {
   const [events, setEvents] = useState([
-    { title: 'Int. à Prog. Web (PL)', start: '2025-03-10T09:30:00', end: '2025-03-10T11:00:00', description: 'João F. Silva\nB128' },
-    { title: 'Mat. Computac. (TP)', start: '2025-03-11T10:00:00', end: '2025-03-11T11:30:00', description: 'L. Merca / C. Perq.\nB255' },
+    { title: 'Int. à Prog. Web (PL)', start: '2025-03-17T08:00:00', end: '2025-03-17T08:30:00', description: 'João F. Silva\nB128' },
+    { title: 'Mat. Computac. (TP)', start: '2025-03-18T08:00:00', end: '2025-03-18T11:30:00', description: 'L. Merca / C. Perq.\nB255' },
     { title: 'Lab. Microsisst. (PL)', start: '2025-03-14T09:30:00', end: '2025-03-14T11:00:00', description: 'Pedro Correia\nI184' },
     { title: 'Prog. Orient. Obj. (PL)', start: '2025-03-10T13:30:00', end: '2025-03-10T15:00:00', description: 'Paulo A. Santos\nB128' },
     { title: 'An. Matemática II (TP)', start: '2025-03-11T13:30:00', end: '2025-03-11T15:00:00', description: 'Cristina Costa\nB257' },
@@ -47,6 +47,13 @@ function App() {
     }
   };
 
+  const formatTimeRange = (date) => {
+    const start = new Date(date);
+    const end = new Date(start.getTime() + 30 * 60000); // Adiciona 30 minutos
+    const format = (date) => date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
+    return `${format(start)} - ${format(end)}`;
+  };
+
   return (
     <div className="App">
       <header className="App-header">
@@ -63,9 +70,16 @@ function App() {
           eventDrop={handleEventDrop}
           eventClick={handleEventClick}
           locale={ptLocale}
-          slotMinTime="08:30:00"
+          slotMinTime="08:00:00"
           slotMaxTime="24:00:00"
           slotDuration="00:30:00"
+          slotLabelInterval="00:30:00"
+          slotLabelFormat={{
+            hour: '2-digit',
+            minute: '2-digit',
+            hour12: false
+          }}
+          slotLabelContent={(arg) => formatTimeRange(arg.date)}
           allDaySlot={false}
           hiddenDays={[0]}  // 0 represents Sunday
           headerToolbar={{
