@@ -8,26 +8,49 @@ import './App.css';
 
 function App() {
   const [events, setEvents] = useState([
-    { title: 'Int. à Prog. Web (PL)', start: '2025-03-17T08:00:00', end: '2025-03-17T08:30:00', description: 'João F. Silva\nB128' },
-    { title: 'Mat. Computac. (TP)', start: '2025-03-18T08:00:00', end: '2025-03-18T11:30:00', description: 'L. Merca / C. Perq.\nB255' },
-    { title: 'Lab. Microsisst. (PL)', start: '2025-03-14T09:30:00', end: '2025-03-14T11:00:00', description: 'Pedro Correia\nI184' },
-    { title: 'Prog. Orient. Obj. (PL)', start: '2025-03-10T13:30:00', end: '2025-03-10T15:00:00', description: 'Paulo A. Santos\nB128' },
-    { title: 'An. Matemática II (TP)', start: '2025-03-11T13:30:00', end: '2025-03-11T15:00:00', description: 'Cristina Costa\nB257' },
-    { title: 'Int. à Prog. Web (TP)', start: '2025-03-10T16:30:00', end: '2025-03-10T18:00:00', description: 'Paulo Santos\nB257' },
-    { title: 'Prog. Orient. Obj. (TP)', start: '2025-03-11T16:30:00', end: '2025-03-11T18:00:00', description: 'António Manso\nB257' },
-    { title: 'Mat. Computac. (TP)', start: '2025-03-13T10:00:00', end: '2025-03-13T11:30:00', description: 'L. Merca / C. Perq.\nB255' },
-    { title: 'An. Matemática II (TP)', start: '2025-03-13T13:30:00', end: '2025-03-13T15:00:00', description: 'Cristina Costa\nB257' },
-    { title: 'Lab. Microsisst. (TP)', start: '2025-03-13T16:30:00', end: '2025-03-13T18:00:00', description: 'Manuel Barros\nB257' }
+    { title: 'Int. à Prog. Web (PL)', start: '2025-03-22T08:00:00', end: '2025-03-22T09:30:00', description: 'João F. Silva\nB128' },
+    { title: 'Lab. Microsisst. (TP)', start: '2025-03-22T16:30:00', end: '2025-03-22T18:00:00', description: 'Manuel Barros\nB257' }
   ]);
 
   const handleDateClick = (arg) => {
+    const isConflict = events.some(event => {
+      const eventStart = new Date(event.start).getTime();
+      const eventEnd = new Date(event.end).getTime();
+      const argStart = new Date(arg.date).getTime();
+      const argEnd = argStart + 30 * 60000; // Adiciona 30 minutos
+
+      return (argStart < eventEnd && argEnd > eventStart);
+    });
+
+    if (isConflict) {
+      alert('Conflito de horário! Não é possível adicionar o evento.');
+      return;
+    }
+
     const title = prompt('Digite o título do evento:');
     if (title) {
-      setEvents([...events, { title, start: arg.date, allDay: arg.allDay }]);
+      setEvents([...events, { title, start: arg.date, end: new Date(arg.date.getTime() + 30 * 60000), description: '' }]);
     }
   };
 
   const handleEventDrop = (info) => {
+    const isConflict = events.some(event => {
+      if (event.title === info.event.title) return false;
+
+      const eventStart = new Date(event.start).getTime();
+      const eventEnd = new Date(event.end).getTime();
+      const argStart = new Date(info.event.start).getTime();
+      const argEnd = new Date(info.event.end).getTime();
+
+      return (argStart < eventEnd && argEnd > eventStart);
+    });
+
+    if (isConflict) {
+      alert('Conflito de horário! Não é possível mover o evento.');
+      info.revert();
+      return;
+    }
+
     const updatedEvents = events.map(event => {
       if (event.title === info.event.title) {
         return {
@@ -57,7 +80,7 @@ function App() {
   return (
     <div className="App">
       <header className="App-header">
-        <h1>Meu Calendário</h1>
+        <h1>O Meu Horário</h1>
       </header>
       <div className="calendar-container">
         <FullCalendar
