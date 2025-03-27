@@ -117,3 +117,30 @@ body {
 .fc-event:hover {
   background-color: #45a049;
 }
+
+.custom-event {
+  position: relative;
+  display: flex;
+  align-items: flex-start; /* Alinha o conteúdo ao topo */
+  justify-content: space-between;
+  padding: 0; /* Remove qualquer padding extra */
+}
+
+.remove-event-btn {
+  position: absolute;
+  top: -10px; /* Ajusta para ficar mais para cima */
+  right: -5px; /* Ajusta para encostar à direita */
+  background: none;
+  border: none;
+  color: red;
+  font-size: 16px;
+  font-weight: bold;
+  cursor: pointer;
+  display: none; /* Esconde a cruz por padrão */
+  padding: 0; /* Remove padding extra */
+  margin: 0; /* Remove margens */
+}
+
+.custom-event:hover .remove-event-btn {
+  display: inline; /* Mostra a cruz ao passar o rato por cima */
+}

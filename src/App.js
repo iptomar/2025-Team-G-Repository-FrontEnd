@@ -8,10 +8,17 @@ import './App.css';
 
 function App() {
   const [events, setEvents] = useState([
-    { title: 'Int. à Prog. Web (PL)', start: '2025-03-22T08:00:00', end: '2025-03-22T09:30:00', description: 'João F. Silva\nB128' },
-    { title: 'Lab. Microsisst. (TP)', start: '2025-03-22T16:30:00', end: '2025-03-22T18:00:00', description: 'Manuel Barros\nB257' }
+    { id: '1', title: 'Int. à Prog. Web (PL)', start: '2025-03-26T08:00:00', end: '2025-03-26T09:30:00', description: 'João F. Silva\nB128' },
+    { id: '2', title: 'Lab. Microsisst. (TP)', start: '2025-03-26T16:30:00', end: '2025-03-26T18:00:00', description: 'Manuel Barros\nB257' }
   ]);
 
+  const handleRemoveEvent = (eventId, eventTitle) => {
+    const confirmDelete = window.confirm(`Tem a certeza de que deseja eliminar o evento '${eventTitle}'?`);
+    if (confirmDelete) {
+      setEvents(events.filter(event => event.id !== eventId));
+    }
+  };
+//teste
   const handleDateClick = (arg) => {
     const isConflict = events.some(event => {
       const eventStart = new Date(event.start).getTime();
@@ -29,13 +36,13 @@ function App() {
 
     const title = prompt('Digite o título do evento:');
     if (title) {
-      setEvents([...events, { title, start: arg.date, end: new Date(arg.date.getTime() + 30 * 60000), description: '' }]);
+      setEvents([...events, { id: Date.now().toString(), title, start: arg.date, end: new Date(arg.date.getTime() + 30 * 60000), description: '' }]);
     }
   };
 
   const handleEventDrop = (info) => {
     const isConflict = events.some(event => {
-      if (event.title === info.event.title) return false;
+      if (event.id === info.event.id) return false;
 
       const eventStart = new Date(event.start).getTime();
       const eventEnd = new Date(event.end).getTime();
@@ -52,7 +59,7 @@ function App() {
     }
 
     const updatedEvents = events.map(event => {
-      if (event.title === info.event.title) {
+      if (event.id === info.event.id) {
         return {
           ...event,
           start: info.event.start,
@@ -64,16 +71,11 @@ function App() {
     setEvents(updatedEvents);
   };
 
-  const handleEventClick = (info) => {
-    if (window.confirm(`Deseja remover o evento '${info.event.title}'?`)) {
-      setEvents(events.filter(event => event.title !== info.event.title));
-    }
-  };
-
   const formatTimeRange = (date) => {
     const start = new Date(date);
     const end = new Date(start.getTime() + 30 * 60000); // Adiciona 30 minutos
     const format = (date) => date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
+
     return `${format(start)} - ${format(end)}`;
   };
 
@@ -91,7 +93,6 @@ function App() {
           editable={true}
           droppable={true}
           eventDrop={handleEventDrop}
-          eventClick={handleEventClick}
           locale={ptLocale}
           slotMinTime="08:00:00"
           slotMaxTime="24:00:00"
@@ -111,11 +112,15 @@ function App() {
             right: 'timeGridWeek,timeGridDay'
           }}
           eventContent={(eventInfo) => (
-            <>
-              <b>{eventInfo.timeText}</b>
-              <i>{eventInfo.event.title}</i>
-              <p>{eventInfo.event.extendedProps.description}</p>
-            </>
+            <div className="custom-event">
+              <span className="event-title">{eventInfo.event.title}</span>
+              <button
+                className="remove-event-btn"
+                onClick={() => handleRemoveEvent(eventInfo.event.id, eventInfo.event.title)}
+              >
+                ✖
+              </button>
+            </div>
           )}
         />
       </div>
@@ -123,4 +128,4 @@ function App() {
   );
 }
 
-export default App;
+export default App; // exporta o componente
