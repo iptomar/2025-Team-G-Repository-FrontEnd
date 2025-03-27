@@ -74,7 +74,7 @@ function App() {
   const formatTimeRange = (date) => {
     const start = new Date(date);
     const end = new Date(start.getTime() + 30 * 60000); // Adiciona 30 minutos
-    const format = (date) => date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
+    const format = (date) => date.toLocaleTimeString([], { hour: '4-digit', minute: '2-digit', hour12: false });
     return `${format(start)} - ${format(end)}`;
   };
 
