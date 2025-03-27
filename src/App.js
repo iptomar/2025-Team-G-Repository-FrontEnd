@@ -18,7 +18,7 @@ function App() {
       setEvents(events.filter(event => event.id !== eventId));
     }
   };
-
+//teste
   const handleDateClick = (arg) => {
     const isConflict = events.some(event => {
       const eventStart = new Date(event.start).getTime();
