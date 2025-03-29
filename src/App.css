@@ -129,7 +129,7 @@ body {
 .remove-event-btn {
   position: absolute;
   top: -10px; /* Ajusta para ficar mais para cima */
-  right: -5px; /* Ajusta para encostar à direita */
+  right: -1px; /* Ajusta para encostar à direita */
   background: none;
   border: none;
   color: red;
@@ -142,5 +142,24 @@ body {
 }
 
 .custom-event:hover .remove-event-btn {
+  display: inline; /* Mostra a cruz ao passar o rato por cima */
+}
+
+.edit-event-btn {
+  position: absolute;
+  top: 7px; /* Ajusta para ficar mais para cima */
+  right: -7px; /* Ajusta para encostar à direita */
+  background: none;
+  border: none;
+  color: white;
+  font-size: 16px;
+  font-weight: bold;
+  cursor: pointer;
+  display: none; /* Esconde a cruz por padrão */
+  padding: 0; /* Remove padding extra */
+  margin: 0;
+
+}
+.custom-event:hover .edit-event-btn {
   display: inline; /* Mostra a cruz ao passar o rato por cima */
 }

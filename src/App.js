@@ -18,6 +18,14 @@ function App() {
       setEvents(events.filter(event => event.id !== eventId));
     }
   };
+  const handleEditEvent = (eventId) => {
+    const newTitle = prompt('Digite o novo título do evento:');
+    if (newTitle) {
+      setEvents(events.map(event =>
+        event.id === eventId ? { ...event, title: newTitle } : event
+      ));
+    }
+  };
 
 //teste
   const handleDateClick = (arg) => {
@@ -121,7 +129,14 @@ function App() {
               >
                 ✖
               </button>
+              <button
+                className="edit-event-btn"
+                onClick={() => handleEditEvent(eventInfo.event.id)}
+              >
+                📝
+              </button>
             </div>
+            
           )}
         />
       </div>
