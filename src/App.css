@@ -20,146 +20,95 @@ body {
   font-size: 24px;
 }
 
-.calendar-container {
-  padding: 20px;
-  background-color: white;
-  border-radius: 8px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-  max-width: 900px;
-  margin: 20px auto;
+.main-container {
+  display: flex;
+  justify-content: space-between;
+  margin: 20px;
 }
 
-.fc {
-  background-color: white;
+.calendar-container {
+  flex: 3;
+  margin-right: 20px;
+}
+
+.blocks-container {
+  flex: 1;
+  padding: 10px;
+  border: 1px solid #ccc;
+  border-radius: 5px;
+  background-color: #f9f9f9;
+}
+
+.blocks-container h2 {
+  text-align: center;
+}
+
+.block {
+  padding: 10px;
+  margin: 10px 0;
+  background-color: #4CAF50; /* Cor verde */
+  color: white;
+  border-radius: 5px;
+  text-align: center;
+  cursor: pointer;
+  transition: background-color 0.3s ease, transform 0.2s ease;
+}
+
+.block:hover {
+  background-color: #388E3C; /* Cor verde mais escura ao passar o mouse */
+  transform: scale(1.05);
 }
 
 .fc-toolbar {
-  background-color: #4CAF50;
-  color: white;
-  border-radius: 8px 8px 0 0;
+  background-color: #4CAF50; /* Cor de fundo verde */
+  color: white; /* Cor do texto */
   padding: 10px;
+  border-radius: 5px;
+}
+
+.fc-toolbar-title {
+  font-size: 18px;
+  font-weight: bold;
 }
 
 .fc-button {
-  background-color: white;
-  color: #4CAF50;
+  background-color: #007bff; /* Cor de fundo dos botões */
+  color: white;
   border: none;
   border-radius: 4px;
   padding: 5px 10px;
-  margin: 0 5px;
-  cursor: pointer;
+  transition: background-color 0.3s ease;
 }
 
 .fc-button:hover {
-  background-color: #45a049;
-  color: white;
+  background-color: #0056b3; /* Cor ao passar o mouse */
+}
+
+.fc-button.fc-button-active {
+  background-color: #0056b3; /* Cor do botão ativo */
 }
 
 .fc-button:focus {
   outline: none;
-  box-shadow: none;
+  box-shadow: 0 0 4px rgba(0, 0, 0, 0.2);
 }
 
-.fc-button-primary {
-  background-color: #4CAF50;
-  color: white;
-}
-
-.fc-button-primary:hover {
-  background-color: #45a049;
-}
-
-.fc-view-harness {
-  border-radius: 0 0 8px 8px;
-}
-
-.fc-timegrid-slot-label {
-  background-color: #f0f2f5;
-  border-right: 1px solid #ddd;
-}
-
-.fc-timegrid-slot {
-  border-bottom: 1px solid #ddd;
-}
-
-.fc-daygrid-event {
-  background-color: #007bff;
-  border: none;
-  color: white;
-  padding: 5px;
-  border-radius: 4px;
-}
-
-.fc-daygrid-event:hover {
-  background-color: #0056b3;
-}
-
-.fc-daygrid-day-number {
-  color: #007bff;
-}
-
-.fc-daygrid-day.fc-day-today {
-  background-color: #e9ecef;
-}
-
-.fc-timegrid-event .fc-event-title {
-  white-space: pre-wrap;
-}
-
-.fc-event {
-  background-color: #4CAF50;
-  color: white;
-  border: 2px solid black; /* Adiciona uma borda preta */
-  border-radius: 4px;
-  padding: 5px;
-}
-
-.fc-event:hover {
-  background-color: #45a049;
-}
-
-.custom-event {
-  position: relative;
-  display: flex;
-  align-items: flex-start; /* Alinha o conteúdo ao topo */
-  justify-content: space-between;
-  padding: 0; /* Remove qualquer padding extra */
-}
-
-.remove-event-btn {
-  position: absolute;
-  top: -10px; /* Ajusta para ficar mais para cima */
-  right: -1px; /* Ajusta para encostar à direita */
-  background: none;
-  border: none;
-  color: red;
-  font-size: 16px;
-  font-weight: bold;
-  cursor: pointer;
-  display: none; /* Esconde a cruz por padrão */
-  padding: 0; /* Remove padding extra */
-  margin: 0; /* Remove margens */
-}
-
-.custom-event:hover .remove-event-btn {
-  display: inline; /* Mostra a cruz ao passar o rato por cima */
-}
-
+.remove-event-btn,
 .edit-event-btn {
-  position: absolute;
-  top: 7px; /* Ajusta para ficar mais para cima */
-  right: -7px; /* Ajusta para encostar à direita */
-  background: none;
-  border: none;
-  color: white;
-  font-size: 16px;
-  font-weight: bold;
+  background: none; /* Remove o fundo */
+  border: none; /* Remove a borda */
+  color: white; /* Cor do ícone */
   cursor: pointer;
-  display: none; /* Esconde a cruz por padrão */
-  padding: 0; /* Remove padding extra */
-  margin: 0;
-
+  font-size: 14px;
+  margin-left: 5px;
+  transition: color 0.3s ease;
 }
-.custom-event:hover .edit-event-btn {
-  display: inline; /* Mostra a cruz ao passar o rato por cima */
+/* Cor do ícone de remover evento */
+.remove-event-btn:hover {
+  color: #ff4d4d; /* Cor vermelha ao passar o mouse */
+}
+
+/* Cor do ícone de remover evento */
+.edit-event-btn:hover {
+  color: #ffc107; /* Cor amarela ao passar o mouse */
 }
