@@ -111,4 +111,32 @@ body {
 /* Cor do ícone de remover evento */
 .edit-event-btn:hover {
   color: #ffc107; /* Cor amarela ao passar o mouse */
+
 }
+
+.fc-toolbar-changes {
+  position: absolute;
+  top: 10px;
+  left: 200px;
+  display: flex;
+  gap: 10px;
+  z-index: 999;
+}
+.fc-toolbar-changes select.fc-button {
+  background-color: #000;          /* preto */
+  color: #fff;                     /* letras brancas */
+  border: none;
+  border-radius: 4px;
+  padding: 6px 12px;
+  font-size: 14px;
+  height: 30px;                    /* igual ao botão Hoje */
+  min-width: 80px;                 /* largura mínima para consistência */
+  margin-left: 8px;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+}
+
+.fc-toolbar-changes select.fc-button:hover {
+  background-color: #333;
+}
+

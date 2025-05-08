@@ -6,11 +6,19 @@ import interactionPlugin, { Draggable } from '@fullcalendar/interaction';
 import ptLocale from '@fullcalendar/core/locales/pt';
 import './App.css';
 
+const TURMAS = ['Turma A', 'Turma B', 'Turma C'];
+const SALAS = ['Sala A', 'Sala B', 'Sala C'];
+const DOCENTES = ['Docente A', 'Docente B', 'Docente C'];
+
 function App() {
-  const [events, setEvents] = useState([
-    { id: '1', title: 'Int. à Prog. Web (PL)', start: '2025-03-26T08:00:00', end: '2025-03-26T09:30:00', description: 'João F. Silva\nB128' },
-    { id: '2', title: 'Lab. Microsisst. (TP)', start: '2025-03-26T16:30:00', end: '2025-03-26T18:00:00', description: 'Manuel Barros\nB257' }
-  ]);
+  const [turma, setTurma] = useState(TURMAS[0]);
+  const [sala, setSala] = useState(SALAS[0]);
+  const [docente, setDocente] = useState(DOCENTES[0]);
+  const [activeContext, setActiveContext] = useState('turma');
+
+  const [eventosTurmas, setEventosTurmas] = useState({});
+  const [eventosSalas, setEventosSalas] = useState({});
+  const [eventosDocentes, setEventosDocentes] = useState({});
 
   const [availableBlocks, setAvailableBlocks] = useState([
     { id: 'a1', title: 'Bloco Livre 1', duration: '30 min' },
@@ -23,82 +31,90 @@ function App() {
     if (draggableElRef.current) {
       new Draggable(draggableElRef.current, {
         itemSelector: '.block',
-        eventData: (eventEl) => {
-          const id = eventEl.getAttribute('data-id');
-          const title = eventEl.getAttribute('data-title');
-          const duration = eventEl.getAttribute('data-duration');
+        eventData: (el) => {
+          const id = el.getAttribute('data-id');
+          const title = el.getAttribute('data-title');
+          const duration = el.getAttribute('data-duration');
           return { id, title, duration };
         }
       });
     }
   }, []);
 
-  const handleRemoveEvent = (eventId, eventTitle) => {
-    const confirmDelete = window.confirm(`Tem a certeza de que deseja eliminar o evento '${eventTitle}'?`);
-    if (confirmDelete) {
-      setEvents(events.filter(event => event.id !== eventId));
-    }
+  const parseDuration = (duration) => {
+    const [h, m] = duration.split(':').map(Number);
+    return (h * 60 + m) * 60000;
   };
 
-  const handleEditEvent = (eventId) => {
-    const newTitle = prompt('Digite o novo título do evento:');
-    if (newTitle) {
-      setEvents(events.map(event =>
-        event.id === eventId ? { ...event, title: newTitle } : event
-      ));
+  const formatTimeRange = (date) => {
+    const start = new Date(date);
+    const end = new Date(start.getTime() + 30 * 60000);
+    const format = (d) => d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
+    return `${format(start)} - ${format(end)}`;
+  };
+
+  const currentEvents = {
+    turma: eventosTurmas[turma] || [],
+    sala: eventosSalas[sala] || [],
+    docente: eventosDocentes[docente] || []
+  }[activeContext];
+
+  const updateEvents = (newEvents) => {
+    if (activeContext === 'turma') {
+      setEventosTurmas(prev => ({ ...prev, [turma]: newEvents }));
+    } else if (activeContext === 'sala') {
+      setEventosSalas(prev => ({ ...prev, [sala]: newEvents }));
+    } else {
+      setEventosDocentes(prev => ({ ...prev, [docente]: newEvents }));
     }
   };
 
   const handleDateClick = (arg) => {
-    const isConflict = events.some(event => {
+    const isConflict = currentEvents.some(event => {
       const eventStart = new Date(event.start).getTime();
       const eventEnd = new Date(event.end).getTime();
-      const argStart = new Date(arg.date).getTime();
-      const argEnd = argStart + 30 * 60000; // Adiciona 30 minutos
-
-      return (argStart < eventEnd && argEnd > eventStart);
+      const clicked = new Date(arg.date).getTime();
+      return clicked >= eventStart && clicked < eventEnd;
     });
 
     if (isConflict) {
-      alert('Conflito de horário! Não é possível adicionar o evento.');
+      alert('Conflito de horário!');
       return;
     }
 
-    const title = prompt('Digite o título do evento:');
+    const title = prompt('Título do evento:');
     if (title) {
-      setEvents([...events, { id: Date.now().toString(), title, start: arg.date, end: new Date(arg.date.getTime() + 30 * 60000), description: '' }]);
+      const newEvent = {
+        id: Date.now().toString(),
+        title,
+        start: arg.date,
+        end: new Date(new Date(arg.date).getTime() + 30 * 60000)
+      };
+      updateEvents([...currentEvents, newEvent]);
     }
   };
 
   const handleEventDrop = (info) => {
-    const isConflict = events.some(event => {
-      if (event.id === info.event.id) return false;
+    const updatedEvent = {
+      id: info.event.id,
+      title: info.event.title,
+      start: info.event.start,
+      end: info.event.end
+    };
+    updateEvents(currentEvents.map(e => e.id === updatedEvent.id ? updatedEvent : e));
+  };
 
-      const eventStart = new Date(event.start).getTime();
-      const eventEnd = new Date(event.end).getTime();
-      const argStart = new Date(info.event.start).getTime();
-      const argEnd = new Date(info.event.end).getTime();
-
-      return (argStart < eventEnd && argEnd > eventStart);
-    });
-
-    if (isConflict) {
-      alert('Conflito de horário! Não é possível mover o evento.');
-      info.revert();
-      return;
+  const handleRemoveEvent = (id) => {
+    if (window.confirm('Eliminar evento?')) {
+      updateEvents(currentEvents.filter(e => e.id !== id));
     }
+  };
 
-    const updatedEvents = events.map(event => {
-      if (event.id === info.event.id) {
-        return {
-          ...event,
-          start: info.event.start,
-          end: info.event.end
-        };
-      }
-      return event;
-    });
-    setEvents(updatedEvents);
+  const handleEditEvent = (id) => {
+    const newTitle = prompt('Novo título:');
+    if (newTitle) {
+      updateEvents(currentEvents.map(e => e.id === id ? { ...e, title: newTitle } : e));
+    }
   };
 
   const handleEventReceive = (info) => {
@@ -107,30 +123,16 @@ function App() {
     const end = new Date(info.event.start.getTime() + parseDuration(duration));
     info.event.setEnd(end);
 
-    // Remove o bloco da lista de blocos disponíveis
-    setAvailableBlocks(availableBlocks.filter(block => block.id !== blockId));
+    setAvailableBlocks(prev => prev.filter(block => block.id !== blockId));
 
-    // Adiciona o evento ao calendário
-    setEvents([...events, {
+    const newEvent = {
       id: info.event.id,
       title: info.event.title,
       start: info.event.start,
-      end: end,
-      description: ''
-    }]);
-  };
+      end: end
+    };
 
-  const parseDuration = (duration) => {
-    const [hours, minutes] = duration.split(':').map(Number);
-    return (hours * 60 + minutes) * 60000; // Converte para milissegundos
-  };
-
-  const formatTimeRange = (date) => {
-    const start = new Date(date);
-    const end = new Date(start.getTime() + 30 * 60000); // Adiciona 30 minutos
-    const format = (date) => date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
-
-    return `${format(start)} - ${format(end)}`;
+    updateEvents([...currentEvents, newEvent]);
   };
 
   return (
@@ -138,12 +140,13 @@ function App() {
       <header className="App-header">
         <h1>O Meu Horário</h1>
       </header>
+
       <div className="main-container">
-        <div className="calendar-container">
+        <div className="calendar-container" style={{ position: 'relative' }}>
           <FullCalendar
             plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin]}
             initialView="timeGridWeek"
-            events={events}
+            events={currentEvents}
             dateClick={handleDateClick}
             editable={true}
             droppable={true}
@@ -154,40 +157,39 @@ function App() {
             slotMaxTime="24:00:00"
             slotDuration="00:30:00"
             slotLabelInterval="00:30:00"
-            slotLabelFormat={{
-              hour: '2-digit',
-              minute: '2-digit',
-              hour12: false
-            }}
+            slotLabelFormat={{ hour: '2-digit', minute: '2-digit', hour12: false }}
             slotLabelContent={(arg) => formatTimeRange(arg.date)}
             allDaySlot={false}
-            hiddenDays={[0]} // 0 represents Sunday
+            hiddenDays={[0]}
             headerToolbar={{
               left: 'prev,next today',
               center: 'title',
               right: 'timeGridWeek,timeGridDay'
             }}
-            eventBackgroundColor="#4CAF50" // Cor de fundo dos eventos
-            eventBorderColor="#388E3C" // Cor da borda dos eventos
+            eventBackgroundColor="#4CAF50"
+            eventBorderColor="#388E3C"
             eventContent={(eventInfo) => (
               <div className="custom-event">
                 <span className="event-title">{eventInfo.event.title}</span>
-                <button
-                  className="remove-event-btn"
-                  onClick={() => handleRemoveEvent(eventInfo.event.id, eventInfo.event.title)}
-                >
-                  ✖
-                </button>
-                <button
-                  className="edit-event-btn"
-                  onClick={() => handleEditEvent(eventInfo.event.id)}
-                >
-                  📝
-                </button>
+                <button className="remove-event-btn" onClick={() => handleRemoveEvent(eventInfo.event.id)}>✖</button>
+                <button className="edit-event-btn" onClick={() => handleEditEvent(eventInfo.event.id)}>📝</button>
               </div>
             )}
           />
+
+          <div className="fc-toolbar-changes">
+            <select value={turma} onChange={(e) => { setTurma(e.target.value); setActiveContext('turma'); }} className="fc-button">
+              {TURMAS.map(item => <option key={item} value={item}>{item}</option>)}
+            </select>
+            <select value={sala} onChange={(e) => { setSala(e.target.value); setActiveContext('sala'); }} className="fc-button">
+              {SALAS.map(item => <option key={item} value={item}>{item}</option>)}
+            </select>
+            <select value={docente} onChange={(e) => { setDocente(e.target.value); setActiveContext('docente'); }} className="fc-button">
+              {DOCENTES.map(item => <option key={item} value={item}>{item}</option>)}
+            </select>
+          </div>
         </div>
+
         <div className="blocks-container" ref={draggableElRef}>
           <h2>Blocos Disponíveis</h2>
           {availableBlocks.map(block => (
