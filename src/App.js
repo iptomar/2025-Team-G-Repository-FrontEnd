@@ -1,3 +1,4 @@
+// App.js
 import React, { useState, useRef, useEffect } from 'react';
 import FullCalendar from '@fullcalendar/react';
 import dayGridPlugin from '@fullcalendar/daygrid';
@@ -143,6 +144,18 @@ function App() {
 
       <div className="main-container">
         <div className="calendar-container" style={{ position: 'relative' }}>
+          <div className="fc-toolbar-selects">
+            <select value={turma} onChange={e => { setTurma(e.target.value); setActiveContext('turma'); }}>
+              {TURMAS.map(item => <option key={item} value={item}>{item}</option>)}
+            </select>
+            <select value={sala} onChange={e => { setSala(e.target.value); setActiveContext('sala'); }}>
+              {SALAS.map(item => <option key={item} value={item}>{item}</option>)}
+            </select>
+            <select value={docente} onChange={e => { setDocente(e.target.value); setActiveContext('docente'); }}>
+              {DOCENTES.map(item => <option key={item} value={item}>{item}</option>)}
+            </select>
+          </div>
+
           <FullCalendar
             plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin]}
             initialView="timeGridWeek"
@@ -161,11 +174,7 @@ function App() {
             slotLabelContent={(arg) => formatTimeRange(arg.date)}
             allDaySlot={false}
             hiddenDays={[0]}
-            headerToolbar={{
-              left: 'prev,next today',
-              center: 'title',
-              right: 'timeGridWeek,timeGridDay'
-            }}
+            headerToolbar={{ left: 'prev,next today', center: 'title', right: 'timeGridWeek,timeGridDay' }}
             eventBackgroundColor="#4CAF50"
             eventBorderColor="#388E3C"
             eventContent={(eventInfo) => (
@@ -176,18 +185,6 @@ function App() {
               </div>
             )}
           />
-
-          <div className="fc-toolbar-changes">
-            <select value={turma} onChange={(e) => { setTurma(e.target.value); setActiveContext('turma'); }} className="fc-button">
-              {TURMAS.map(item => <option key={item} value={item}>{item}</option>)}
-            </select>
-            <select value={sala} onChange={(e) => { setSala(e.target.value); setActiveContext('sala'); }} className="fc-button">
-              {SALAS.map(item => <option key={item} value={item}>{item}</option>)}
-            </select>
-            <select value={docente} onChange={(e) => { setDocente(e.target.value); setActiveContext('docente'); }} className="fc-button">
-              {DOCENTES.map(item => <option key={item} value={item}>{item}</option>)}
-            </select>
-          </div>
         </div>
 
         <div className="blocks-container" ref={draggableElRef}>

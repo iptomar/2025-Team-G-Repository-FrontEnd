@@ -1,3 +1,4 @@
+/* App.css */
 body {
   font-family: Arial, sans-serif;
   background-color: #f0f2f5;
@@ -13,6 +14,7 @@ body {
 .App-header {
   background-color: #4CAF50;
   color: white;
+  padding: 10px 0;
 }
 
 .App-header h1 {
@@ -22,17 +24,21 @@ body {
 
 .main-container {
   display: flex;
+  flex-wrap: wrap;
   justify-content: space-between;
-  margin: 20px;
+  padding: 10px;
+  gap: 10px;
 }
 
 .calendar-container {
   flex: 3;
-  margin-right: 20px;
+  min-width: 600px;
+  margin-right: 10px;
 }
 
 .blocks-container {
   flex: 1;
+  min-width: 250px;
   padding: 10px;
   border: 1px solid #ccc;
   border-radius: 5px;
@@ -46,7 +52,7 @@ body {
 .block {
   padding: 10px;
   margin: 10px 0;
-  background-color: #4CAF50; /* Cor verde */
+  background-color: #4CAF50;
   color: white;
   border-radius: 5px;
   text-align: center;
@@ -55,13 +61,13 @@ body {
 }
 
 .block:hover {
-  background-color: #388E3C; /* Cor verde mais escura ao passar o mouse */
+  background-color: #388E3C;
   transform: scale(1.05);
 }
 
 .fc-toolbar {
-  background-color: #4CAF50; /* Cor de fundo verde */
-  color: white; /* Cor do texto */
+  background-color: #4CAF50;
+  color: white;
   padding: 10px;
   border-radius: 5px;
 }
@@ -72,7 +78,7 @@ body {
 }
 
 .fc-button {
-  background-color: #007bff; /* Cor de fundo dos botões */
+  background-color: #007bff;
   color: white;
   border: none;
   border-radius: 4px;
@@ -81,11 +87,11 @@ body {
 }
 
 .fc-button:hover {
-  background-color: #0056b3; /* Cor ao passar o mouse */
+  background-color: #0056b3;
 }
 
 .fc-button.fc-button-active {
-  background-color: #0056b3; /* Cor do botão ativo */
+  background-color: #0056b3;
 }
 
 .fc-button:focus {
@@ -95,48 +101,44 @@ body {
 
 .remove-event-btn,
 .edit-event-btn {
-  background: none; /* Remove o fundo */
-  border: none; /* Remove a borda */
-  color: white; /* Cor do ícone */
+  background: none;
+  border: none;
+  color: white;
   cursor: pointer;
   font-size: 14px;
   margin-left: 5px;
   transition: color 0.3s ease;
 }
-/* Cor do ícone de remover evento */
+
 .remove-event-btn:hover {
-  color: #ff4d4d; /* Cor vermelha ao passar o mouse */
+  color: #ff4d4d;
 }
 
-/* Cor do ícone de remover evento */
 .edit-event-btn:hover {
-  color: #ffc107; /* Cor amarela ao passar o mouse */
-
+  color: #ffc107;
 }
 
-.fc-toolbar-changes {
-  position: absolute;
-  top: 10px;
-  left: 200px;
+.fc-toolbar-selects {
   display: flex;
+  flex-wrap: wrap;
   gap: 10px;
-  z-index: 999;
+  justify-content: center;
+  margin-bottom: 10px;
 }
-.fc-toolbar-changes select.fc-button {
-  background-color: #000;          /* preto */
-  color: #fff;                     /* letras brancas */
+
+.fc-toolbar-selects select {
+  background-color: #000;
+  color: #fff;
   border: none;
   border-radius: 4px;
   padding: 6px 12px;
   font-size: 14px;
-  height: 30px;                    /* igual ao botão Hoje */
-  min-width: 80px;                 /* largura mínima para consistência */
-  margin-left: 8px;
+  height: 34px;
+  min-width: 100px;
   cursor: pointer;
   transition: background-color 0.3s ease;
 }
 
-.fc-toolbar-changes select.fc-button:hover {
+.fc-toolbar-selects select:hover {
   background-color: #333;
 }
-
