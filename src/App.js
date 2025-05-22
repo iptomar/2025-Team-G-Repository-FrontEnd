@@ -6,6 +6,7 @@ import timeGridPlugin from '@fullcalendar/timegrid';
 import interactionPlugin, { Draggable } from '@fullcalendar/interaction';
 import ptLocale from '@fullcalendar/core/locales/pt';
 import './App.css';
+import * as XLSX from 'xlsx';
 
 const TURMAS = ['Turma A', 'Turma B', 'Turma C'];
 const SALAS = ['Sala A', 'Sala B', 'Sala C'];
@@ -22,8 +23,8 @@ function App() {
   const [eventosDocentes, setEventosDocentes] = useState({});
 
   const [availableBlocks, setAvailableBlocks] = useState([
-    { id: 'a1', title: 'Bloco Livre 1', duration: '30 min' },
-    { id: 'a2', title: 'Bloco Livre 2', duration: '1 hora' }
+    //{ id: 'a1', title: 'Bloco Livre 1', duration: '30 min' },
+    //{ id: 'a2', title: 'Bloco Livre 2', duration: '1 hora' }
   ]);
 
   const draggableElRef = useRef(null);
@@ -40,6 +41,65 @@ function App() {
         }
       });
     }
+  }, []);
+
+  useEffect(() => {
+    fetch(process.env.PUBLIC_URL + '/blocos.xlsx')
+      .then(response => response.arrayBuffer())
+      .then(arrayBuffer => {
+        const data = new Uint8Array(arrayBuffer);
+        const workbook = XLSX.read(data, { type: 'array' });
+
+        // Sheet das UCs (primeira sheet)
+        const sheetUC = workbook.Sheets[workbook.SheetNames[0]];
+        const jsonUC = XLSX.utils.sheet_to_json(sheetUC);
+
+        // Sheet dos Cursos
+        const sheetCursos = workbook.Sheets['Cursos'];
+        const jsonCursos = XLSX.utils.sheet_to_json(sheetCursos);
+
+        // Cria um mapa de Código_Curso_ID para Nome_Curso
+        const cursosMap = {};
+        jsonCursos.forEach(curso => {
+          cursosMap[curso.Código_Curso_ID] = curso.Nome_Curso;
+        });
+
+        // Sheet dos Docentes (se já estiveres a usar IDs para docentes)
+        const sheetDocentes = workbook.Sheets['Docentes'];
+        const jsonDocentes = sheetDocentes ? XLSX.utils.sheet_to_json(sheetDocentes) : [];
+        const docentesMap = {};
+        jsonDocentes.forEach(doc => {
+          docentesMap[doc.ID] = doc.Nome;
+        });
+        const getDocentesNomes = (ids) => {
+          if (!ids) return '';
+          return ids
+            .toString()
+            .split(',')
+            .map(id => docentesMap[id.trim()] || '')
+            .filter(Boolean)
+            .join(', ');
+        };
+
+        // Mapeia os blocos, substituindo IDs pelos nomes
+        const blocks = jsonUC.map((row, idx) => ({
+          id: row.Código ? String(row.Código) : `block${idx}`,
+          nome: row.Nome || '',
+          codigo: row.Código || '',
+          codCurso: cursosMap[row.Código_Curso_ID] || '', // Aqui vai o nome do curso!
+          horasPL: row['Horas PL'] || '',
+          horasTP: row['Horas TP'] || '',
+          docentePL: getDocentesNomes(row['ID_Docente_PL']),
+          docentesTP: getDocentesNomes(row['ID_Docente_TP']),
+          ano: row.Ano || '',
+          semestre: row.Semestre || '',
+          duration: "02:00"
+        }));
+        setAvailableBlocks(blocks);
+      })
+      .catch(err => {
+        console.log('Erro ao carregar o Excel:', err);
+      });
   }, []);
 
   const parseDuration = (duration) => {
@@ -120,20 +180,79 @@ function App() {
 
   const handleEventReceive = (info) => {
     const blockId = info.draggedEl.getAttribute('data-id');
-    const duration = info.draggedEl.getAttribute('data-duration');
-    const end = new Date(info.event.start.getTime() + parseDuration(duration));
+    const block = availableBlocks.find(b => b.id === blockId);
+    const duration = 2 * 60 * 60000; // 2 horas em ms
+    const end = new Date(info.event.start.getTime() + duration);
     info.event.setEnd(end);
 
     setAvailableBlocks(prev => prev.filter(block => block.id !== blockId));
 
     const newEvent = {
       id: info.event.id,
-      title: info.event.title,
+      title: block.nome,
       start: info.event.start,
-      end: end
+      end: end,
+      tipo: block.horasPL ? 'PL' : 'TP',
+      docentes: block.horasPL ? block.docentePL : block.docentesTP,
+      ...block // <-- adiciona todas as props do bloco ao evento!
     };
 
     updateEvents([...currentEvents, newEvent]);
+  };
+
+  const handleEventDragStop = (info) => {
+    const blocksContainer = draggableElRef.current;
+    const rect = blocksContainer.getBoundingClientRect();
+    const { clientX, clientY } = info.jsEvent;
+
+    if (
+      clientX >= rect.left &&
+      clientX <= rect.right &&
+      clientY >= rect.top &&
+      clientY <= rect.bottom
+    ) {
+      // Remove do calendário
+      updateEvents(currentEvents.filter(e => e.id !== info.event.id));
+      // Adiciona de volta à lista de blocos, mantendo todas as props
+      setAvailableBlocks(prev => [
+        ...prev,
+        {
+          id: info.event.id,
+          nome: info.event.title,
+          codigo: info.event.extendedProps.codigo || '',
+          codCurso: info.event.extendedProps.codCurso || '',
+          horasPL: info.event.extendedProps.horasPL || '',
+          horasTP: info.event.extendedProps.horasTP || '',
+          docentePL: info.event.extendedProps.docentePL || '',
+          docentesTP: info.event.extendedProps.docentesTP || '',
+          ano: info.event.extendedProps.ano || '',
+          semestre: info.event.extendedProps.semestre || '',
+          duration: "02:00"
+        }
+      ]);
+    }
+  };
+
+  const handleExcelUpload = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (evt) => {
+      const data = new Uint8Array(evt.target.result);
+      const workbook = XLSX.read(data, { type: 'array' });
+      const sheetName = workbook.SheetNames[0];
+      const worksheet = workbook.Sheets[sheetName];
+      const json = XLSX.utils.sheet_to_json(worksheet);
+
+      // Espera-se que cada linha tenha: id, title, duration
+      const blocks = json.map((row, idx) => ({
+        id: row.id ? String(row.id) : `block${idx}`,
+        title: row.title || `Bloco ${idx + 1}`,
+        duration: row.duration || '00:30'
+      }));
+      setAvailableBlocks(blocks);
+    };
+    reader.readAsArrayBuffer(file);
   };
 
   return (
@@ -177,30 +296,40 @@ function App() {
             headerToolbar={{ left: 'prev,next today', center: 'title', right: 'timeGridWeek,timeGridDay' }}
             eventBackgroundColor="#4CAF50"
             eventBorderColor="#388E3C"
-            eventContent={(eventInfo) => (
-              <div className="custom-event">
-                <span className="event-title">{eventInfo.event.title}</span>
-                <button className="remove-event-btn" onClick={() => handleRemoveEvent(eventInfo.event.id)}>✖</button>
-                <button className="edit-event-btn" onClick={() => handleEditEvent(eventInfo.event.id)}>📝</button>
-              </div>
-            )}
+            eventContent={(eventInfo) => {
+              const tipo = eventInfo.event.extendedProps.tipo;
+              const docentes = eventInfo.event.extendedProps.docentes;
+              return (
+                <div className="custom-event">
+                  <span className="event-title">{eventInfo.event.title}</span><br />
+                  <span>{tipo === 'PL' ? '(PL)' : '(TP)'}</span><br />
+                  <span style={{ fontSize: '0.9em' }}>{docentes}</span>
+                </div>
+              );
+            }}
+            eventDragStop={handleEventDragStop}
           />
         </div>
 
         <div className="blocks-container" ref={draggableElRef}>
-          <h2>Blocos Disponíveis</h2>
-          {availableBlocks.map(block => (
-            <div
-              key={block.id}
-              className="block"
-              data-id={block.id}
-              data-title={block.title}
-              data-duration={block.duration === '30 min' ? '00:30' : '01:00'}
-            >
-              {block.title} ({block.duration})
-            </div>
-          ))}
-        </div>
+        <h2>Blocos Disponíveis</h2>
+        {availableBlocks.map(block => (
+          <div
+            key={block.id}
+            className="block"
+            data-id={block.id}
+            data-title={block.nome}
+            data-duration="02:00" // <-- aqui!
+          >
+            <strong>{block.nome}</strong><br />
+            Código: {block.codigo}<br />
+            Curso: {block.codCurso}<br />
+            PL: {block.horasPL}h ({block.docentePL})<br />
+            TP: {block.horasTP}h ({block.docentesTP})<br />
+            Ano: {block.ano} &nbsp;|&nbsp; Semestre: {block.semestre}
+          </div>
+        ))}
+      </div>
       </div>
     </div>
   );
