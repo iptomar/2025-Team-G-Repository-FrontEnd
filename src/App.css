@@ -52,7 +52,6 @@ body {
 .block {
   padding: 10px;
   margin: 10px 0;
-  background-color: #4CAF50;
   color: white;
   border-radius: 5px;
   text-align: center;
@@ -60,8 +59,17 @@ body {
   transition: background-color 0.3s ease, transform 0.2s ease;
 }
 
+.block.pl {
+  background-color: #2196F3;
+  border: 2px solid #0D47A1;
+}
+
+.block.tp {
+  background-color: #4CAF50;
+  border: 2px solid #1B5E20;
+}
+
 .block:hover {
-  background-color: #388E3C;
   transform: scale(1.05);
 }
 
@@ -141,4 +149,20 @@ body {
 
 .fc-toolbar-selects select:hover {
   background-color: #333;
+}
+
+.fc-timegrid-slot {
+  min-height: 25px; /* ou 30px se precisares mais espaço */
+}
+
+.fc-event.fc-pl {
+  background-color: #2196F3 !important;
+  border: 2px solid #0D47A1 !important;
+  color: white !important;
+}
+
+.fc-event.fc-tp {
+  background-color: #4CAF50 !important;
+  border: 2px solid #1B5E20 !important;
+  color: white !important;
 }
