@@ -8,6 +8,8 @@ import ptLocale from '@fullcalendar/core/locales/pt';
 import './App.css';
 import { fetchBlocos, atualizarBloco, limparAlocacoes } from './api';
 import * as signalR from '@microsoft/signalr';
+import jsPDF from "jspdf";
+import html2canvas from "html2canvas";
 
 function App() {
   const [eventos, setEventos] = useState([]);
@@ -121,6 +123,28 @@ function App() {
     carregarBlocos();
   }, []);
 
+  const exportarPDF = () => {
+  // 🎯 Seleciona o container da grelha de horário (FullCalendar)
+  const element = document.getElementsByClassName("fc-view-harness")[0];
+
+  if (!element) {
+    alert("Horário não encontrado.");
+    return;
+  }
+
+  html2canvas(element, { scale: 2 }).then((canvas) => {
+    const imgData = canvas.toDataURL("image/png");
+    const pdf = new jsPDF("landscape", "mm", "a4");
+
+    const pdfWidth = pdf.internal.pageSize.getWidth();
+    const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
+
+    pdf.addImage(imgData, "PNG", 0, 10, pdfWidth, pdfHeight);
+    pdf.save("horario.pdf");
+  });
+};
+
+
   const handleEventReceive = async (info) => {
     const blocoOriginal = availableBlocks.find(b => b.id === info.event.id);
     if (!blocoOriginal || sendingBlocks.has(blocoOriginal.id)) return info.revert();
@@ -177,6 +201,9 @@ function App() {
         }}
       >
         Limpar Alocações
+      </button>
+      <button onClick={exportarPDF} style={{ margin: '10px' }}>
+        Exportar Horário em PDF
       </button>
       <div className="main-container">
         <div className="calendar-container">
