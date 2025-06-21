@@ -10,8 +10,16 @@ import { fetchBlocos, atualizarBloco, limparAlocacoes } from './api';
 import * as signalR from '@microsoft/signalr';
 import jsPDF from "jspdf";
 import html2canvas from "html2canvas";
+import LoginRegister from './LoginRegister';
+
 
 function App() {
+  const [user, setUser] = useState(null);
+
+// Mostrar login/registo se não estiver autenticado
+if (!user && !localStorage.getItem('token')) {
+  return <LoginRegister onLogin={setUser} />;
+}
   const [eventos, setEventos] = useState([]);
   const [availableBlocks, setAvailableBlocks] = useState([]);
   const [sendingBlocks, setSendingBlocks] = useState(new Set());
