@@ -1,28 +1,31 @@
-// LoginRegister.js
 import React, { useState } from 'react';
 import axios from 'axios';
 
-const API_BASE = 'https://localhost:7089/api';
+const API_BASE = 'https://localhost:44363/api';
 
 export default function LoginRegister({ onLogin }) {
   const [isRegistering, setIsRegistering] = useState(false);
+  const [nome, setNome] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [escolaId, setEscolaId] = useState('');
+  const [cursoId, setCursoId] = useState('');
 
   const toggleForm = () => setIsRegistering(!isRegistering);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    const endpoint = isRegistering ? 'registar' : 'login';
+    const endpoint = isRegistering ? 'registo' : 'login';
     try {
-      const response = await axios.post(`${API_BASE}/utilizadores/${endpoint}`, {
-        email,
-        password
-      });
+      const payload = isRegistering
+        ? { nome, email, password, escolaId, cursoId }
+        : { email, password };
+
+      const response = await axios.post(`${API_BASE}/utilizadores/${endpoint}`, payload);
 
       if (response.data && response.data.token) {
         localStorage.setItem('token', response.data.token);
-        onLogin(response.data); // informar App.js
+        onLogin(response.data);
       } else {
         alert("Erro: resposta inválida.");
       }
@@ -51,6 +54,28 @@ export default function LoginRegister({ onLogin }) {
           onChange={e => setPassword(e.target.value)}
           style={{ margin: '5px', padding: '8px' }}
         /><br />
+        {isRegistering && (
+          <>
+            <input
+              type="text"
+              placeholder="Nome"
+              value={nome}
+              onChange={e => setNome(e.target.value)}
+            /><br />
+            <input
+              type="number"
+              placeholder="Escola ID"
+              value={escolaId}
+              onChange={e => setEscolaId(e.target.value)}
+            /><br />
+            <input
+              type="number"
+              placeholder="Curso ID"
+              value={cursoId}
+              onChange={e => setCursoId(e.target.value)}
+            /><br />
+          </>
+        )}
         <button type="submit" style={{ padding: '10px 20px' }}>
           {isRegistering ? "Registar" : "Entrar"}
         </button>
