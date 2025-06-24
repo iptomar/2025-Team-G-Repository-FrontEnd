@@ -1,4 +1,4 @@
-// App.js (original solicitado) recriado conforme pedido
+// App.js corrigido: todos os hooks declarados no topo, sem condicional
 import React, { useState, useRef, useEffect } from 'react';
 import FullCalendar from '@fullcalendar/react';
 import dayGridPlugin from '@fullcalendar/daygrid';
@@ -10,8 +10,13 @@ import { fetchBlocos, atualizarBloco, limparAlocacoes } from './api';
 import * as signalR from '@microsoft/signalr';
 import jsPDF from "jspdf";
 import html2canvas from "html2canvas";
+import LoginRegister from './LoginRegister';
 
 function App() {
+  const [user, setUser] = useState(() => {
+    const token = localStorage.getItem("token");
+    return token ? { token } : null;
+  });
   const [eventos, setEventos] = useState([]);
   const [availableBlocks, setAvailableBlocks] = useState([]);
   const [sendingBlocks, setSendingBlocks] = useState(new Set());
@@ -23,9 +28,7 @@ function App() {
       .withAutomaticReconnect()
       .build();
 
-    connection.start()
-      .then(() => console.log("✅ Conectado ao SignalR"))
-      .catch(err => console.error("❌ Erro na conexão SignalR:", err));
+    connection.start().then(() => console.log("✅ Conectado ao SignalR"));
 
     connection.on("BlocoAdicionado", bloco => {
       setEventos(prev => {
@@ -35,54 +38,20 @@ function App() {
           title: `${bloco.unidadeCurricular} (${bloco.tipoAula})`,
           start: new Date(bloco.start),
           end: new Date(bloco.end),
-          unidadeCurricular: bloco.unidadeCurricular,
-          tipoAula: bloco.tipoAula,
-          docente: bloco.docente,
-          sala: bloco.sala,
-          numeroSlots: bloco.numeroSlots
+          ...bloco
         }];
       });
     });
 
     connection.on("BlocoRemovido", bloco => {
       setEventos(prev => prev.filter(e => e.id !== bloco.id.toString()));
-
-      // ✅ Só adiciona à lista lateral se estiver desalocado (sem start/end)
       if (!bloco.start && !bloco.end) {
-        const blocoConvertido = {
-          id: bloco.id.toString(),
-          title: `${bloco.unidadeCurricular} (${bloco.tipoAula})`,
-          start: null,
-          end: null,
-          unidadeCurricular: bloco.unidadeCurricular,
-          tipoAula: bloco.tipoAula,
-          docente: bloco.docente,
-          sala: bloco.sala,
-          numeroSlots: bloco.numeroSlots,
-          repetirSemanas: bloco.repetirSemanas,
-          unidadeCurricularId: bloco.unidadeCurricularId,
-          turmaId: bloco.turmaId,
-          docenteId: bloco.docenteId,
-          salaId: bloco.salaId,
-          horarioId: bloco.horarioId,
-          utilizadorId: bloco.utilizadorId
-        };
-
-        setAvailableBlocks(prev => [...prev, blocoConvertido]);
+        setAvailableBlocks(prev => [...prev, { ...bloco, id: bloco.id.toString() }]);
       }
     });
 
     connection.on("BlocoAtualizado", bloco => {
-      const startDate = new Date(bloco.start);
-      const endDate = new Date(bloco.end);
-      setEventos(prev =>
-        prev.map(e =>
-          e.id === bloco.id.toString()
-            ? { ...e, start: startDate, end: endDate, ...bloco }
-            : e
-        )
-      );
-      // 🔁 Remover da lista lateral se foi alocado
+      setEventos(prev => prev.map(e => e.id === bloco.id.toString() ? { ...e, ...bloco } : e));
       setAvailableBlocks(prev => prev.filter(b => b.id !== bloco.id.toString()));
     });
 
@@ -123,27 +92,23 @@ function App() {
     carregarBlocos();
   }, []);
 
-  const exportarPDF = () => {
-  // 🎯 Seleciona o container da grelha de horário (FullCalendar)
-  const element = document.getElementsByClassName("fc-view-harness")[0];
-
-  if (!element) {
-    alert("Horário não encontrado.");
-    return;
+  if (!user) {
+    return <LoginRegister onLogin={setUser} />;
   }
 
-  html2canvas(element, { scale: 2 }).then((canvas) => {
-    const imgData = canvas.toDataURL("image/png");
-    const pdf = new jsPDF("landscape", "mm", "a4");
+  const exportarPDF = () => {
+    const element = document.getElementsByClassName("fc-view-harness")[0];
+    if (!element) return alert("Horário não encontrado.");
 
-    const pdfWidth = pdf.internal.pageSize.getWidth();
-    const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
-
-    pdf.addImage(imgData, "PNG", 0, 10, pdfWidth, pdfHeight);
-    pdf.save("horario.pdf");
-  });
-};
-
+    html2canvas(element, { scale: 2 }).then((canvas) => {
+      const imgData = canvas.toDataURL("image/png");
+      const pdf = new jsPDF("landscape", "mm", "a4");
+      const pdfWidth = pdf.internal.pageSize.getWidth();
+      const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
+      pdf.addImage(imgData, "PNG", 0, 10, pdfWidth, pdfHeight);
+      pdf.save("horario.pdf");
+    });
+  };
 
   const handleEventReceive = async (info) => {
     const blocoOriginal = availableBlocks.find(b => b.id === info.event.id);
@@ -174,7 +139,6 @@ function App() {
     };
 
     try {
-      console.log("📤 Enviando para POST:", blocoParaCriar);
       await atualizarBloco(blocoOriginal.id, blocoParaCriar);
       setAvailableBlocks(prev => prev.filter(b => b.id !== blocoOriginal.id));
     } catch (err) {
@@ -191,20 +155,20 @@ function App() {
       <header className="App-header">
         <h1>O Meu Horário</h1>
       </header>
-      <button
-        style={{ margin: '10px', padding: '8px 16px' }}
-        onClick={async () => {
-          if (window.confirm("Tens a certeza que queres limpar todas as alocações de blocos?")) {
-            await limparAlocacoes();
-            setEventos([]);
-          }
-        }}
-      >
-        Limpar Alocações
+      <button onClick={() => {
+        localStorage.removeItem("token");
+        setUser(null);
+      }} style={{ margin: '10px', backgroundColor: '#c00', color: 'white', padding: '8px 16px', borderRadius: '6px' }}>
+        Sair / Logout
       </button>
-      <button onClick={exportarPDF} style={{ margin: '10px' }}>
-        Exportar Horário em PDF
-      </button>
+
+      <button onClick={async () => {
+        if (window.confirm("Tens a certeza que queres limpar todas as alocações de blocos?")) {
+          await limparAlocacoes();
+          setEventos([]);
+        }
+      }}>Limpar Alocações</button>
+      <button onClick={exportarPDF}>Exportar Horário em PDF</button>
       <div className="main-container">
         <div className="calendar-container">
           <FullCalendar
