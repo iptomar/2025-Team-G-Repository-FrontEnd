@@ -306,20 +306,39 @@ function App() {
         {user?.podeGerirBlocos && (
           <div className="blocks-container" ref={draggableElRef}>
             <h2>Blocos Disponíveis</h2>
-            {availableBlocks.map(block => (
-              <div
-                key={block.id}
-                className={`block ${block.tipoAula.toLowerCase()}`}
-                data-id={block.id}
-                data-title={block.unidadeCurricular}
-                data-duration={`0${Math.floor(block.numeroSlots * 30 / 60)}:${(block.numeroSlots * 30 % 60).toString().padStart(2, '0')}`}
-                style={{ color: 'white', padding: '8px', marginBottom: '8px', borderRadius: '6px', fontSize: '0.9em', cursor: 'grab', height: '60px' }}>
-                <strong>{block.unidadeCurricular} ({block.tipoAula})</strong><br />
-                {block.docente}<br />
-                {block.sala}<br />
-                <span style={{ fontSize: '0.75em' }}>{Math.floor(block.numeroSlots * 30 / 60)}h {(block.numeroSlots * 30 % 60)}min</span>
-              </div>
-            ))}
+            {availableBlocks
+  .filter(block => {
+    if (vistaAtual === "sala") return valorSelecionado === "" || block.sala === valorSelecionado;
+    if (vistaAtual === "docente") return valorSelecionado === "" || block.docente === valorSelecionado;
+    if (vistaAtual === "turma") return valorSelecionado === "" || block.turmaId?.toString() === valorSelecionado;
+    return true;
+  })
+  .map(block => (
+    <div
+      key={block.id}
+      className={`block ${block.tipoAula.toLowerCase()}`}
+      data-id={block.id}
+      data-title={block.unidadeCurricular}
+      data-duration={`0${Math.floor(block.numeroSlots * 30 / 60)}:${(block.numeroSlots * 30 % 60).toString().padStart(2, '0')}`}
+      style={{
+        color: 'white',
+        padding: '8px',
+        marginBottom: '8px',
+        borderRadius: '6px',
+        fontSize: '0.9em',
+        cursor: 'grab',
+        height: '60px'
+      }}
+    >
+      <strong>{block.unidadeCurricular} ({block.tipoAula})</strong><br />
+      {block.docente}<br />
+      {block.sala}<br />
+      <span style={{ fontSize: '0.75em' }}>
+        {Math.floor(block.numeroSlots * 30 / 60)}h {(block.numeroSlots * 30 % 60)}min
+      </span>
+    </div>
+))}
+
           </div>
         )}
       </div>
