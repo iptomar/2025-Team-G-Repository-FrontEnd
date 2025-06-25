@@ -25,6 +25,12 @@ function App() {
   const draggableElRef = useRef(null);
   const [mostrandoGestao, setMostrandoGestao] = useState(false);
   const [conflitoAtivo, setConflitoAtivo] = useState(false);
+  const [vistaAtual, setVistaAtual] = useState("todas"); // "todas" | "sala" | "docente" | "turma"
+  const [valorSelecionado, setValorSelecionado] = useState(""); // nome da sala, docente ou ID da turma
+
+  const [salasDisponiveis, setSalasDisponiveis] = useState([]);
+  const [docentesDisponiveis, setDocentesDisponiveis] = useState([]);
+  const [turmasDisponiveis, setTurmasDisponiveis] = useState([]);
 
   useEffect(() => {
     if (!user) return;
@@ -96,6 +102,14 @@ function App() {
       });
       setEventos(eventosFormatados);
       setAvailableBlocks(eventosFormatados);
+      // Extrair listas únicas para os filtros de vistas
+        const salas = [...new Set(blocos.map(b => b.sala).filter(Boolean))];
+        const docentes = [...new Set(blocos.map(b => b.docente).filter(Boolean))];
+        const turmas = [...new Set(blocos.map(b => b.turmaId).filter(Boolean).map(id => id.toString()))];
+
+          setSalasDisponiveis(salas);
+          setDocentesDisponiveis(docentes);
+          setTurmasDisponiveis(turmas);
     };
     carregarBlocos();
   }, []);
@@ -202,6 +216,44 @@ function App() {
           Gerir Utilizadores
         </button>
       )}
+      <div className="filtros-vista">
+  <select value={vistaAtual} onChange={(e) => {
+    setVistaAtual(e.target.value);
+    setValorSelecionado("");
+  }}>
+    <option value="todas">Vista Geral</option>
+    <option value="sala">Vista por Sala</option>
+    <option value="docente">Vista por Docente</option>
+    <option value="turma">Vista por Turma</option>
+  </select>
+
+  {vistaAtual === "sala" && (
+    <select value={valorSelecionado} onChange={e => setValorSelecionado(e.target.value)}>
+      <option value="">-- Escolhe uma sala --</option>
+      {salasDisponiveis.map(s => (
+        <option key={s} value={s}>{s}</option>
+      ))}
+    </select>
+  )}
+
+  {vistaAtual === "docente" && (
+    <select value={valorSelecionado} onChange={e => setValorSelecionado(e.target.value)}>
+      <option value="">-- Escolhe um docente --</option>
+      {docentesDisponiveis.map(d => (
+        <option key={d} value={d}>{d}</option>
+      ))}
+    </select>
+  )}
+
+  {vistaAtual === "turma" && (
+    <select value={valorSelecionado} onChange={e => setValorSelecionado(e.target.value)}>
+      <option value="">-- Escolhe uma turma --</option>
+      {turmasDisponiveis.map(t => (
+        <option key={t} value={t}>{t}</option>
+      ))}
+    </select>
+  )}
+</div>
       <div className="main-container">
         <div className="calendar-container">
           <FullCalendar
@@ -211,7 +263,12 @@ function App() {
             editable={user?.podeGerirBlocos === true}
             droppable={user?.podeGerirBlocos === true}
             locale={ptLocale}
-            events={eventos}
+            events={eventos.filter(e => {
+  if (vistaAtual === "sala") return valorSelecionado === "" || e.sala === valorSelecionado;
+  if (vistaAtual === "docente") return valorSelecionado === "" || e.docente === valorSelecionado;
+  if (vistaAtual === "turma") return valorSelecionado === "" || e.turmaId?.toString() === valorSelecionado;
+  return true;
+})}
             eventReceive={handleEventReceive}
             slotMinTime="08:00:00"
             slotMaxTime="24:00:00"
