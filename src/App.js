@@ -31,6 +31,8 @@ function App() {
   const [salasDisponiveis, setSalasDisponiveis] = useState([]);
   const [docentesDisponiveis, setDocentesDisponiveis] = useState([]);
   const [turmasDisponiveis, setTurmasDisponiveis] = useState([]);
+  const conflitoTimeoutRef = useRef(false);
+
 
   useEffect(() => {
     if (!user) return;
@@ -163,17 +165,25 @@ function App() {
       return start.getTime() < eEnd && end.getTime() > eStart;
     });
 
-    if (conflito) {
-      setConflitoAtivo(true);
-      alert("Conflito de horário! Já existe um bloco nesse horário.");
-      setTimeout(() => setConflitoAtivo(false), 200);
-      setSendingBlocks(prev => {
-        const copy = new Set(prev);
-        copy.delete(blocoOriginal.id);
-        return copy;
-      });
-      return info.revert();
-    }
+   if (conflito) {
+  if (!conflitoTimeoutRef.current) {
+    conflitoTimeoutRef.current = true;
+    alert("⚠️ Conflito de horário: já existe um bloco nesse horário.");
+    setTimeout(() => {
+      conflitoTimeoutRef.current = false;
+    }, 1000); // Evita repetições durante 1 segundo
+  }
+
+  setSendingBlocks(prev => {
+    const copy = new Set(prev);
+    copy.delete(blocoOriginal.id);
+    return copy;
+  });
+
+  return info.revert();
+}
+
+
 
     const blocoParaCriar = {
       ...blocoOriginal,
@@ -192,6 +202,7 @@ function App() {
       setSendingBlocks(prev => { const copy = new Set(prev); copy.delete(blocoOriginal.id); return copy; });
     }
   };
+
 
   return (
     <div className="App">
