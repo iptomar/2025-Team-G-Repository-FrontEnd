@@ -1,4 +1,4 @@
-// App.js corrigido: todos os hooks declarados no topo, sem condicional
+// App.js corrigido
 import React, { useState, useRef, useEffect } from 'react';
 import FullCalendar from '@fullcalendar/react';
 import dayGridPlugin from '@fullcalendar/daygrid';
@@ -11,24 +11,32 @@ import * as signalR from '@microsoft/signalr';
 import jsPDF from "jspdf";
 import html2canvas from "html2canvas";
 import LoginRegister from './LoginRegister';
+import GestaoUtilizadores from './GestaoUtilizadores';
 
 function App() {
   const [user, setUser] = useState(() => {
-    const token = localStorage.getItem("token");
-    return token ? { token } : null;
+    const userData = localStorage.getItem("user");
+    return userData ? JSON.parse(userData) : null;
   });
+
   const [eventos, setEventos] = useState([]);
   const [availableBlocks, setAvailableBlocks] = useState([]);
   const [sendingBlocks, setSendingBlocks] = useState(new Set());
   const draggableElRef = useRef(null);
+  const [mostrandoGestao, setMostrandoGestao] = useState(false);
+  const [conflitoAtivo, setConflitoAtivo] = useState(false);
 
   useEffect(() => {
+    if (!user) return;
+
     const connection = new signalR.HubConnectionBuilder()
       .withUrl("https://localhost:7089/horarioHub")
       .withAutomaticReconnect()
       .build();
 
-    connection.start().then(() => console.log("✅ Conectado ao SignalR"));
+    connection.start()
+      .then(() => console.log("✅ Conectado ao SignalR"))
+      .catch(err => console.error("❌ Erro ao conectar SignalR:", err));
 
     connection.on("BlocoAdicionado", bloco => {
       setEventos(prev => {
@@ -56,10 +64,10 @@ function App() {
     });
 
     return () => connection.stop();
-  }, []);
+  }, [user]);
 
   useEffect(() => {
-    if (draggableElRef.current && availableBlocks.length > 0) {
+    if (user?.podeGerirBlocos && draggableElRef.current && availableBlocks.length > 0) {
       new Draggable(draggableElRef.current, {
         itemSelector: '.block',
         eventData: el => {
@@ -70,7 +78,7 @@ function App() {
         }
       });
     }
-  }, [availableBlocks]);
+  }, [user, availableBlocks]);
 
   useEffect(() => {
     const carregarBlocos = async () => {
@@ -92,8 +100,18 @@ function App() {
     carregarBlocos();
   }, []);
 
-  if (!user) {
-    return <LoginRegister onLogin={setUser} />;
+  if (!user) return <LoginRegister onLogin={setUser} />;
+
+  if (mostrandoGestao) {
+    return (
+      <div className="App">
+        <header className="App-header">
+          <h1>Gestão de Utilizadores</h1>
+        </header>
+        <button onClick={() => setMostrandoGestao(false)} style={{ margin: '10px' }}>⬅ Voltar</button>
+        <GestaoUtilizadores />
+      </div>
+    );
   }
 
   const exportarPDF = () => {
@@ -112,6 +130,11 @@ function App() {
 
   const handleEventReceive = async (info) => {
     const blocoOriginal = availableBlocks.find(b => b.id === info.event.id);
+    if (!user?.podeGerirBlocos) {
+      alert("Não tens permissão para alocar blocos.");
+      return info.revert();
+    }
+    if (conflitoAtivo) return info.revert();
     if (!blocoOriginal || sendingBlocks.has(blocoOriginal.id)) return info.revert();
 
     setSendingBlocks(prev => new Set(prev).add(blocoOriginal.id));
@@ -127,8 +150,14 @@ function App() {
     });
 
     if (conflito) {
+      setConflitoAtivo(true);
       alert("Conflito de horário! Já existe um bloco nesse horário.");
-      setSendingBlocks(prev => { const copy = new Set(prev); copy.delete(blocoOriginal.id); return copy; });
+      setTimeout(() => setConflitoAtivo(false), 200);
+      setSendingBlocks(prev => {
+        const copy = new Set(prev);
+        copy.delete(blocoOriginal.id);
+        return copy;
+      });
       return info.revert();
     }
 
@@ -155,10 +184,8 @@ function App() {
       <header className="App-header">
         <h1>O Meu Horário</h1>
       </header>
-      <button onClick={() => {
-        localStorage.removeItem("token");
-        setUser(null);
-      }} style={{ margin: '10px', backgroundColor: '#c00', color: 'white', padding: '8px 16px', borderRadius: '6px' }}>
+      <button onClick={() => { localStorage.removeItem("user"); setUser(null); }}
+        style={{ margin: '10px', backgroundColor: '#c00', color: 'white', padding: '8px 16px', borderRadius: '6px' }}>
         Sair / Logout
       </button>
 
@@ -169,14 +196,20 @@ function App() {
         }
       }}>Limpar Alocações</button>
       <button onClick={exportarPDF}>Exportar Horário em PDF</button>
+      {user?.perfil === "Admin" && (
+        <button onClick={() => setMostrandoGestao(true)}
+          style={{ margin: '10px', backgroundColor: '#444', color: 'white', padding: '8px 16px', borderRadius: '6px' }}>
+          Gerir Utilizadores
+        </button>
+      )}
       <div className="main-container">
         <div className="calendar-container">
           <FullCalendar
             plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin]}
             initialView="timeGridWeek"
             initialDate="2025-06-20"
-            editable={true}
-            droppable={true}
+            editable={user?.podeGerirBlocos === true}
+            droppable={user?.podeGerirBlocos === true}
             locale={ptLocale}
             events={eventos}
             eventReceive={handleEventReceive}
@@ -200,35 +233,38 @@ function App() {
               const durMin = (new Date(event.end) - new Date(event.start)) / 60000;
               const durStr = `${Math.floor(durMin / 60)}h${durMin % 60 > 0 ? ' ' + (durMin % 60) + 'min' : ''}`;
               return {
-                html: `<div style="font-size:0.85em;text-align:center;">
-                  <strong>${unidadeCurricular} (${tipoAula})</strong><br/>
-                  ${docente}<br/>
-                  ${sala}<br/>
-                  <span style="font-size:0.75em;">${durStr}</span>
-                </div>`
+                html: `
+                  <div style="font-size:0.85em;text-align:center;">
+                    <strong>${unidadeCurricular} (${tipoAula})</strong><br/>
+                    ${docente}<br/>
+                    ${sala}<br/>
+                    <span style="font-size:0.75em;">${durStr}</span>
+                  </div>
+                `
               };
             }}
           />
         </div>
 
-        <div className="blocks-container" ref={draggableElRef}>
-          <h2>Blocos Disponíveis</h2>
-          {availableBlocks.map(block => (
-            <div
-              key={block.id}
-              className={`block ${block.tipoAula.toLowerCase()}`}
-              data-id={block.id}
-              data-title={block.unidadeCurricular}
-              data-duration={`0${Math.floor(block.numeroSlots * 30 / 60)}:${(block.numeroSlots * 30 % 60).toString().padStart(2, '0')}`}
-              style={{ color: 'white', padding: '8px', marginBottom: '8px', borderRadius: '6px', fontSize: '0.9em', cursor: 'grab', height: '60px' }}
-            >
-              <strong>{block.unidadeCurricular} ({block.tipoAula})</strong><br />
-              {block.docente}<br />
-              {block.sala}<br />
-              <span style={{ fontSize: '0.75em' }}>{Math.floor(block.numeroSlots * 30 / 60)}h {(block.numeroSlots * 30 % 60)}min</span>
-            </div>
-          ))}
-        </div>
+        {user?.podeGerirBlocos && (
+          <div className="blocks-container" ref={draggableElRef}>
+            <h2>Blocos Disponíveis</h2>
+            {availableBlocks.map(block => (
+              <div
+                key={block.id}
+                className={`block ${block.tipoAula.toLowerCase()}`}
+                data-id={block.id}
+                data-title={block.unidadeCurricular}
+                data-duration={`0${Math.floor(block.numeroSlots * 30 / 60)}:${(block.numeroSlots * 30 % 60).toString().padStart(2, '0')}`}
+                style={{ color: 'white', padding: '8px', marginBottom: '8px', borderRadius: '6px', fontSize: '0.9em', cursor: 'grab', height: '60px' }}>
+                <strong>{block.unidadeCurricular} ({block.tipoAula})</strong><br />
+                {block.docente}<br />
+                {block.sala}<br />
+                <span style={{ fontSize: '0.75em' }}>{Math.floor(block.numeroSlots * 30 / 60)}h {(block.numeroSlots * 30 % 60)}min</span>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );
