@@ -1,4 +1,4 @@
-// App.js corrigido: todos os hooks declarados no topo, sem condicional
+// App.js corrigido
 import React, { useState, useRef, useEffect } from 'react';
 import FullCalendar from '@fullcalendar/react';
 import dayGridPlugin from '@fullcalendar/daygrid';
@@ -11,37 +11,55 @@ import * as signalR from '@microsoft/signalr';
 import jsPDF from "jspdf";
 import html2canvas from "html2canvas";
 import LoginRegister from './LoginRegister';
+import GestaoUtilizadores from './GestaoUtilizadores';
 
 function App() {
   const [user, setUser] = useState(() => {
-    const token = localStorage.getItem("token");
-    return token ? { token } : null;
+    const userData = localStorage.getItem("user");
+    return userData ? JSON.parse(userData) : null;
   });
+
   const [eventos, setEventos] = useState([]);
   const [availableBlocks, setAvailableBlocks] = useState([]);
   const [sendingBlocks, setSendingBlocks] = useState(new Set());
   const draggableElRef = useRef(null);
+  const [mostrandoGestao, setMostrandoGestao] = useState(false);
+  const [conflitoAtivo, setConflitoAtivo] = useState(false);
+  const [vistaAtual, setVistaAtual] = useState("todas"); // "todas" | "sala" | "docente" | "turma"
+  const [valorSelecionado, setValorSelecionado] = useState(""); // nome da sala, docente ou ID da turma
+
+  const [salasDisponiveis, setSalasDisponiveis] = useState([]);
+  const [docentesDisponiveis, setDocentesDisponiveis] = useState([]);
+  const [turmasDisponiveis, setTurmasDisponiveis] = useState([]);
+  const conflitoTimeoutRef = useRef(false);
+
 
   useEffect(() => {
+    if (!user) return;
+
     const connection = new signalR.HubConnectionBuilder()
       .withUrl("https://localhost:7089/horarioHub")
       .withAutomaticReconnect()
       .build();
 
-    connection.start().then(() => console.log("✅ Conectado ao SignalR"));
+    connection.start()
+      .then(() => console.log("✅ Conectado ao SignalR"))
+      .catch(err => console.error("❌ Erro ao conectar SignalR:", err));
 
     connection.on("BlocoAdicionado", bloco => {
-      setEventos(prev => {
-        if (prev.some(e => e.id === bloco.id.toString())) return prev;
-        return [...prev, {
-          id: bloco.id.toString(),
-          title: `${bloco.unidadeCurricular} (${bloco.tipoAula})`,
-          start: new Date(bloco.start),
-          end: new Date(bloco.end),
-          ...bloco
-        }];
-      });
-    });
+  if (!bloco || !bloco.start || !bloco.end) return; // ignora blocos incompletos
+
+  setEventos(prev => {
+    if (prev.some(e => e.id === bloco.id.toString())) return prev;
+    return [...prev, {
+      id: bloco.id.toString(),
+      title: `${bloco.unidadeCurricular} (${bloco.tipoAula})`,
+      start: new Date(bloco.start),
+      end: new Date(bloco.end),
+      ...bloco
+    }];
+  });
+});
 
     connection.on("BlocoRemovido", bloco => {
       setEventos(prev => prev.filter(e => e.id !== bloco.id.toString()));
@@ -51,15 +69,40 @@ function App() {
     });
 
     connection.on("BlocoAtualizado", bloco => {
-      setEventos(prev => prev.map(e => e.id === bloco.id.toString() ? { ...e, ...bloco } : e));
-      setAvailableBlocks(prev => prev.filter(b => b.id !== bloco.id.toString()));
+  if (!bloco) return;
+
+  setEventos(prev => {
+    const outros = prev.filter(e => e.id !== bloco.id.toString());
+    if (bloco.start && bloco.end) {
+      return [...outros, {
+        ...bloco,
+        title: `${bloco.unidadeCurricular} (${bloco.tipoAula})`,
+        start: new Date(bloco.start),
+        end: new Date(bloco.end),
+        id: bloco.id.toString()
+      }];
+    }
+    return outros;
+  });
+
+  if (!bloco.start && !bloco.end) {
+    const start = new Date("2024-05-27T08:00:00");
+    const end = new Date(start.getTime() + bloco.numeroSlots * 30 * 60000);
+    setAvailableBlocks(prev => {
+      if (prev.some(b => b.id === bloco.id.toString())) return prev;
+      return [{ ...bloco, start, end, id: bloco.id.toString() }, ...prev];
     });
+  } else {
+    setAvailableBlocks(prev => prev.filter(b => b.id !== bloco.id.toString()));
+  }
+});
+
 
     return () => connection.stop();
-  }, []);
+  }, [user]);
 
   useEffect(() => {
-    if (draggableElRef.current && availableBlocks.length > 0) {
+    if (user?.podeGerirBlocos && draggableElRef.current && availableBlocks.length > 0) {
       new Draggable(draggableElRef.current, {
         itemSelector: '.block',
         eventData: el => {
@@ -70,7 +113,7 @@ function App() {
         }
       });
     }
-  }, [availableBlocks]);
+  }, [user, availableBlocks]);
 
   useEffect(() => {
     const carregarBlocos = async () => {
@@ -88,12 +131,30 @@ function App() {
       });
       setEventos(eventosFormatados);
       setAvailableBlocks(eventosFormatados);
+      // Extrair listas únicas para os filtros de vistas
+        const salas = [...new Set(blocos.map(b => b.sala).filter(Boolean))];
+        const docentes = [...new Set(blocos.map(b => b.docente).filter(Boolean))];
+        const turmas = [...new Set(blocos.map(b => b.turmaId).filter(Boolean).map(id => id.toString()))];
+
+          setSalasDisponiveis(salas);
+          setDocentesDisponiveis(docentes);
+          setTurmasDisponiveis(turmas);
     };
     carregarBlocos();
   }, []);
 
-  if (!user) {
-    return <LoginRegister onLogin={setUser} />;
+  if (!user) return <LoginRegister onLogin={setUser} />;
+
+  if (mostrandoGestao) {
+    return (
+      <div className="App">
+        <header className="App-header">
+          <h1>Gestão de Utilizadores</h1>
+        </header>
+        <button onClick={() => setMostrandoGestao(false)} style={{ margin: '10px' }}>⬅ Voltar</button>
+        <GestaoUtilizadores />
+      </div>
+    );
   }
 
   const exportarPDF = () => {
@@ -112,6 +173,11 @@ function App() {
 
   const handleEventReceive = async (info) => {
     const blocoOriginal = availableBlocks.find(b => b.id === info.event.id);
+    if (!user?.podeGerirBlocos) {
+      alert("Não tens permissão para alocar blocos.");
+      return info.revert();
+    }
+    if (conflitoAtivo) return info.revert();
     if (!blocoOriginal || sendingBlocks.has(blocoOriginal.id)) return info.revert();
 
     setSendingBlocks(prev => new Set(prev).add(blocoOriginal.id));
@@ -126,11 +192,25 @@ function App() {
       return start.getTime() < eEnd && end.getTime() > eStart;
     });
 
-    if (conflito) {
-      alert("Conflito de horário! Já existe um bloco nesse horário.");
-      setSendingBlocks(prev => { const copy = new Set(prev); copy.delete(blocoOriginal.id); return copy; });
-      return info.revert();
-    }
+   if (conflito) {
+  if (!conflitoTimeoutRef.current) {
+    conflitoTimeoutRef.current = true;
+    alert("⚠️ Conflito de horário: já existe um bloco nesse horário.");
+    setTimeout(() => {
+      conflitoTimeoutRef.current = false;
+    }, 1000); // Evita repetições durante 1 segundo
+  }
+
+  setSendingBlocks(prev => {
+    const copy = new Set(prev);
+    copy.delete(blocoOriginal.id);
+    return copy;
+  });
+
+  return info.revert();
+}
+
+
 
     const blocoParaCriar = {
       ...blocoOriginal,
@@ -141,6 +221,18 @@ function App() {
     try {
       await atualizarBloco(blocoOriginal.id, blocoParaCriar);
       setAvailableBlocks(prev => prev.filter(b => b.id !== blocoOriginal.id));
+      setAvailableBlocks(prev => prev.filter(b => b.id !== blocoOriginal.id));
+setEventos(prev => {
+  const outros = prev.filter(e => e.id !== blocoOriginal.id);
+  return [...outros, {
+    ...blocoParaCriar,
+    title: `${blocoOriginal.unidadeCurricular} (${blocoOriginal.tipoAula})`,
+    start,
+    end,
+    id: blocoOriginal.id.toString()
+  }];
+});
+
     } catch (err) {
       console.error("❌ Erro ao criar bloco:", err);
       alert("Erro ao criar o bloco no servidor.");
@@ -155,37 +247,162 @@ function App() {
       <header className="App-header">
         <h1>O Meu Horário</h1>
       </header>
-      <button onClick={() => {
-        localStorage.removeItem("token");
-        setUser(null);
-      }} style={{ margin: '10px', backgroundColor: '#c00', color: 'white', padding: '8px 16px', borderRadius: '6px' }}>
-        Sair / Logout
-      </button>
+      <button onClick={() => { localStorage.removeItem("user"); setUser(null); }} className="logout">
+  Sair / Logout
+</button>
 
-      <button onClick={async () => {
-        if (window.confirm("Tens a certeza que queres limpar todas as alocações de blocos?")) {
-          await limparAlocacoes();
-          setEventos([]);
-        }
-      }}>Limpar Alocações</button>
-      <button onClick={exportarPDF}>Exportar Horário em PDF</button>
+      <button onClick={exportarPDF} className="exportar">
+  Exportar Horário em PDF
+</button>
+      {user?.perfil === "Admin" && (
+        <button onClick={() => setMostrandoGestao(true)} className="gestao">
+  Gerir Utilizadores
+</button>
+      )}
+      <div className="filtros-vista">
+  <select value={vistaAtual} onChange={(e) => {
+    setVistaAtual(e.target.value);
+    setValorSelecionado("");
+  }}>
+    <option value="todas">Vista Geral</option>
+    <option value="sala">Vista por Sala</option>
+    <option value="docente">Vista por Docente</option>
+    <option value="turma">Vista por Turma</option>
+  </select>
+
+  {vistaAtual === "sala" && (
+    <select value={valorSelecionado} onChange={e => setValorSelecionado(e.target.value)}>
+      <option value="">-- Escolhe uma sala --</option>
+      {salasDisponiveis.map(s => (
+        <option key={s} value={s}>{s}</option>
+      ))}
+    </select>
+  )}
+
+  {vistaAtual === "docente" && (
+    <select value={valorSelecionado} onChange={e => setValorSelecionado(e.target.value)}>
+      <option value="">-- Escolhe um docente --</option>
+      {docentesDisponiveis.map(d => (
+        <option key={d} value={d}>{d}</option>
+      ))}
+    </select>
+  )}
+
+  {vistaAtual === "turma" && (
+    <select value={valorSelecionado} onChange={e => setValorSelecionado(e.target.value)}>
+      <option value="">-- Escolhe uma turma --</option>
+      {turmasDisponiveis.map(t => (
+        <option key={t} value={t}>{t}</option>
+      ))}
+    </select>
+  )}
+</div>
       <div className="main-container">
         <div className="calendar-container">
           <FullCalendar
             plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin]}
             initialView="timeGridWeek"
             initialDate="2025-06-20"
-            editable={true}
-            droppable={true}
+            editable={user?.podeGerirBlocos === true}
+            droppable={user?.podeGerirBlocos === true}
             locale={ptLocale}
-            events={eventos}
+            events={eventos.filter(e => {
+  if (vistaAtual === "sala") return valorSelecionado === "" || e.sala === valorSelecionado;
+  if (vistaAtual === "docente") return valorSelecionado === "" || e.docente === valorSelecionado;
+  if (vistaAtual === "turma") return valorSelecionado === "" || e.turmaId?.toString() === valorSelecionado;
+  return true;
+})}
             eventReceive={handleEventReceive}
+            eventDrop={async (info) => {
+  const bloco = eventos.find(b => b.id.toString() === info.event.id);
+  if (!bloco) return;
+
+  const start = info.event.start;
+  const end = info.event.end;
+
+  // Verificar conflitos com outros blocos
+  const conflito = eventos.some(event => {
+    if (event.id === bloco.id.toString()) return false; // Ignora ele próprio
+    const eStart = new Date(event.start).getTime();
+    const eEnd = new Date(event.end).getTime();
+    return start.getTime() < eEnd && end.getTime() > eStart;
+  });
+
+  if (conflito) {
+    alert("⚠️ Conflito: já existe um bloco nesse horário.");
+    return info.revert();
+  }
+
+  const blocoAtualizado = {
+    ...bloco,
+    start: start.toISOString(),
+    end: end.toISOString()
+  };
+
+  try {
+    await atualizarBloco(bloco.id, blocoAtualizado);
+    setEventos(prev =>
+      prev.map(e =>
+        e.id === bloco.id.toString()
+          ? { ...e, start, end }
+          : e
+      )
+    );
+  } catch (err) {
+    console.error("❌ Erro ao atualizar bloco:", err);
+    info.revert();
+  }
+}}
+
             slotMinTime="08:00:00"
             slotMaxTime="24:00:00"
             slotDuration="00:30:00"
             slotLabelInterval="00:30:00"
             allDaySlot={false}
             hiddenDays={[0]}
+            eventClick={(info) => {
+  if (!user?.podeGerirBlocos) return;
+
+  if (!window.confirm("Remover este bloco do calendário e voltar à lista?")) return;
+
+  const bloco = eventos.find(b => b.id.toString() === info.event.id);
+  if (!bloco) return;
+
+  atualizarBloco(bloco.id, { ...bloco, start: null, end: null })
+    .then(() => {
+      setEventos(prev => prev.filter(e => e.id !== bloco.id));
+
+      const startBase = new Date("2024-05-27T08:00:00");
+      const endBase = new Date(startBase.getTime() + bloco.numeroSlots * 30 * 60000);
+
+      const blocoParaLista = {
+        ...bloco,
+        start: startBase,
+        end: endBase
+      };
+
+      setAvailableBlocks(prev => {
+  const jaExiste = prev.some(b => b.id === bloco.id.toString());
+  if (jaExiste) return prev;
+
+  return [
+    {
+      ...bloco,
+      id: bloco.id.toString(),
+      start: startBase,
+      end: endBase
+    },
+    ...prev
+  ];
+});
+
+    })
+    .catch(err => {
+      console.error("❌ Erro ao remover bloco:", err);
+      alert("Erro ao remover o bloco do servidor.");
+    });
+}}
+
             headerToolbar={{ left: 'prev,next today', center: 'title', right: 'timeGridWeek,timeGridDay' }}
             slotLabelFormat={{ hour: '2-digit', minute: '2-digit', hour12: false }}
             slotLabelContent={({ date }) => {
@@ -200,35 +417,57 @@ function App() {
               const durMin = (new Date(event.end) - new Date(event.start)) / 60000;
               const durStr = `${Math.floor(durMin / 60)}h${durMin % 60 > 0 ? ' ' + (durMin % 60) + 'min' : ''}`;
               return {
-                html: `<div style="font-size:0.85em;text-align:center;">
-                  <strong>${unidadeCurricular} (${tipoAula})</strong><br/>
-                  ${docente}<br/>
-                  ${sala}<br/>
-                  <span style="font-size:0.75em;">${durStr}</span>
-                </div>`
+                html: `
+                  <div style="font-size:0.85em;text-align:center;">
+                    <strong>${unidadeCurricular} (${tipoAula})</strong><br/>
+                    ${docente}<br/>
+                    ${sala}<br/>
+                    <span style="font-size:0.75em;">${durStr}</span>
+                  </div>
+                `
               };
             }}
           />
         </div>
 
-        <div className="blocks-container" ref={draggableElRef}>
-          <h2>Blocos Disponíveis</h2>
-          {availableBlocks.map(block => (
-            <div
-              key={block.id}
-              className={`block ${block.tipoAula.toLowerCase()}`}
-              data-id={block.id}
-              data-title={block.unidadeCurricular}
-              data-duration={`0${Math.floor(block.numeroSlots * 30 / 60)}:${(block.numeroSlots * 30 % 60).toString().padStart(2, '0')}`}
-              style={{ color: 'white', padding: '8px', marginBottom: '8px', borderRadius: '6px', fontSize: '0.9em', cursor: 'grab', height: '60px' }}
-            >
-              <strong>{block.unidadeCurricular} ({block.tipoAula})</strong><br />
-              {block.docente}<br />
-              {block.sala}<br />
-              <span style={{ fontSize: '0.75em' }}>{Math.floor(block.numeroSlots * 30 / 60)}h {(block.numeroSlots * 30 % 60)}min</span>
-            </div>
-          ))}
-        </div>
+        {user?.podeGerirBlocos && (
+          <div className="blocks-container" ref={draggableElRef}>
+            <h2>Blocos Disponíveis</h2>
+            {availableBlocks
+  .filter(block => {
+    if (vistaAtual === "sala") return valorSelecionado === "" || block.sala === valorSelecionado;
+    if (vistaAtual === "docente") return valorSelecionado === "" || block.docente === valorSelecionado;
+    if (vistaAtual === "turma") return valorSelecionado === "" || block.turmaId?.toString() === valorSelecionado;
+    return true;
+  })
+  .map(block => (
+    <div
+      key={block.id}
+      className={`block ${block.tipoAula.toLowerCase()}`}
+      data-id={block.id}
+      data-title={block.unidadeCurricular}
+      data-duration={`0${Math.floor(block.numeroSlots * 30 / 60)}:${(block.numeroSlots * 30 % 60).toString().padStart(2, '0')}`}
+      style={{
+        color: 'white',
+        padding: '8px',
+        marginBottom: '8px',
+        borderRadius: '6px',
+        fontSize: '0.9em',
+        cursor: 'grab',
+        height: '60px'
+      }}
+    >
+      <strong>{block.unidadeCurricular} ({block.tipoAula})</strong><br />
+      {block.docente}<br />
+      {block.sala}<br />
+      <span style={{ fontSize: '0.75em' }}>
+        {Math.floor(block.numeroSlots * 30 / 60)}h {(block.numeroSlots * 30 % 60)}min
+      </span>
+    </div>
+))}
+
+          </div>
+        )}
       </div>
     </div>
   );
