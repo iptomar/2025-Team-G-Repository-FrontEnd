@@ -47,17 +47,19 @@ function App() {
       .catch(err => console.error("❌ Erro ao conectar SignalR:", err));
 
     connection.on("BlocoAdicionado", bloco => {
-      setEventos(prev => {
-        if (prev.some(e => e.id === bloco.id.toString())) return prev;
-        return [...prev, {
-          id: bloco.id.toString(),
-          title: `${bloco.unidadeCurricular} (${bloco.tipoAula})`,
-          start: new Date(bloco.start),
-          end: new Date(bloco.end),
-          ...bloco
-        }];
-      });
-    });
+  if (!bloco || !bloco.start || !bloco.end) return; // ignora blocos incompletos
+
+  setEventos(prev => {
+    if (prev.some(e => e.id === bloco.id.toString())) return prev;
+    return [...prev, {
+      id: bloco.id.toString(),
+      title: `${bloco.unidadeCurricular} (${bloco.tipoAula})`,
+      start: new Date(bloco.start),
+      end: new Date(bloco.end),
+      ...bloco
+    }];
+  });
+});
 
     connection.on("BlocoRemovido", bloco => {
       setEventos(prev => prev.filter(e => e.id !== bloco.id.toString()));
@@ -67,9 +69,34 @@ function App() {
     });
 
     connection.on("BlocoAtualizado", bloco => {
-      setEventos(prev => prev.map(e => e.id === bloco.id.toString() ? { ...e, ...bloco } : e));
-      setAvailableBlocks(prev => prev.filter(b => b.id !== bloco.id.toString()));
+  if (!bloco) return;
+
+  setEventos(prev => {
+    const outros = prev.filter(e => e.id !== bloco.id.toString());
+    if (bloco.start && bloco.end) {
+      return [...outros, {
+        ...bloco,
+        title: `${bloco.unidadeCurricular} (${bloco.tipoAula})`,
+        start: new Date(bloco.start),
+        end: new Date(bloco.end),
+        id: bloco.id.toString()
+      }];
+    }
+    return outros;
+  });
+
+  if (!bloco.start && !bloco.end) {
+    const start = new Date("2024-05-27T08:00:00");
+    const end = new Date(start.getTime() + bloco.numeroSlots * 30 * 60000);
+    setAvailableBlocks(prev => {
+      if (prev.some(b => b.id === bloco.id.toString())) return prev;
+      return [{ ...bloco, start, end, id: bloco.id.toString() }, ...prev];
     });
+  } else {
+    setAvailableBlocks(prev => prev.filter(b => b.id !== bloco.id.toString()));
+  }
+});
+
 
     return () => connection.stop();
   }, [user]);
@@ -194,6 +221,18 @@ function App() {
     try {
       await atualizarBloco(blocoOriginal.id, blocoParaCriar);
       setAvailableBlocks(prev => prev.filter(b => b.id !== blocoOriginal.id));
+      setAvailableBlocks(prev => prev.filter(b => b.id !== blocoOriginal.id));
+setEventos(prev => {
+  const outros = prev.filter(e => e.id !== blocoOriginal.id);
+  return [...outros, {
+    ...blocoParaCriar,
+    title: `${blocoOriginal.unidadeCurricular} (${blocoOriginal.tipoAula})`,
+    start,
+    end,
+    id: blocoOriginal.id.toString()
+  }];
+});
+
     } catch (err) {
       console.error("❌ Erro ao criar bloco:", err);
       alert("Erro ao criar o bloco no servidor.");
@@ -202,7 +241,6 @@ function App() {
       setSendingBlocks(prev => { const copy = new Set(prev); copy.delete(blocoOriginal.id); return copy; });
     }
   };
-
 
   return (
     <div className="App">
@@ -214,12 +252,6 @@ function App() {
         Sair / Logout
       </button>
 
-      <button onClick={async () => {
-        if (window.confirm("Tens a certeza que queres limpar todas as alocações de blocos?")) {
-          await limparAlocacoes();
-          setEventos([]);
-        }
-      }}>Limpar Alocações</button>
       <button onClick={exportarPDF}>Exportar Horário em PDF</button>
       {user?.perfil === "Admin" && (
         <button onClick={() => setMostrandoGestao(true)}
@@ -281,12 +313,96 @@ function App() {
   return true;
 })}
             eventReceive={handleEventReceive}
+            eventDrop={async (info) => {
+  const bloco = eventos.find(b => b.id.toString() === info.event.id);
+  if (!bloco) return;
+
+  const start = info.event.start;
+  const end = info.event.end;
+
+  // Verificar conflitos com outros blocos
+  const conflito = eventos.some(event => {
+    if (event.id === bloco.id.toString()) return false; // Ignora ele próprio
+    const eStart = new Date(event.start).getTime();
+    const eEnd = new Date(event.end).getTime();
+    return start.getTime() < eEnd && end.getTime() > eStart;
+  });
+
+  if (conflito) {
+    alert("⚠️ Conflito: já existe um bloco nesse horário.");
+    return info.revert();
+  }
+
+  const blocoAtualizado = {
+    ...bloco,
+    start: start.toISOString(),
+    end: end.toISOString()
+  };
+
+  try {
+    await atualizarBloco(bloco.id, blocoAtualizado);
+    setEventos(prev =>
+      prev.map(e =>
+        e.id === bloco.id.toString()
+          ? { ...e, start, end }
+          : e
+      )
+    );
+  } catch (err) {
+    console.error("❌ Erro ao atualizar bloco:", err);
+    info.revert();
+  }
+}}
+
             slotMinTime="08:00:00"
             slotMaxTime="24:00:00"
             slotDuration="00:30:00"
             slotLabelInterval="00:30:00"
             allDaySlot={false}
             hiddenDays={[0]}
+            eventClick={(info) => {
+  if (!user?.podeGerirBlocos) return;
+
+  if (!window.confirm("Remover este bloco do calendário e voltar à lista?")) return;
+
+  const bloco = eventos.find(b => b.id.toString() === info.event.id);
+  if (!bloco) return;
+
+  atualizarBloco(bloco.id, { ...bloco, start: null, end: null })
+    .then(() => {
+      setEventos(prev => prev.filter(e => e.id !== bloco.id));
+
+      const startBase = new Date("2024-05-27T08:00:00");
+      const endBase = new Date(startBase.getTime() + bloco.numeroSlots * 30 * 60000);
+
+      const blocoParaLista = {
+        ...bloco,
+        start: startBase,
+        end: endBase
+      };
+
+      setAvailableBlocks(prev => {
+  const jaExiste = prev.some(b => b.id === bloco.id.toString());
+  if (jaExiste) return prev;
+
+  return [
+    {
+      ...bloco,
+      id: bloco.id.toString(),
+      start: startBase,
+      end: endBase
+    },
+    ...prev
+  ];
+});
+
+    })
+    .catch(err => {
+      console.error("❌ Erro ao remover bloco:", err);
+      alert("Erro ao remover o bloco do servidor.");
+    });
+}}
+
             headerToolbar={{ left: 'prev,next today', center: 'title', right: 'timeGridWeek,timeGridDay' }}
             slotLabelFormat={{ hour: '2-digit', minute: '2-digit', hour12: false }}
             slotLabelContent={({ date }) => {
