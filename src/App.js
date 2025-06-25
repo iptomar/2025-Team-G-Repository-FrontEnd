@@ -247,17 +247,17 @@ setEventos(prev => {
       <header className="App-header">
         <h1>O Meu Horário</h1>
       </header>
-      <button onClick={() => { localStorage.removeItem("user"); setUser(null); }}
-        style={{ margin: '10px', backgroundColor: '#c00', color: 'white', padding: '8px 16px', borderRadius: '6px' }}>
-        Sair / Logout
-      </button>
+      <button onClick={() => { localStorage.removeItem("user"); setUser(null); }} className="logout">
+  Sair / Logout
+</button>
 
-      <button onClick={exportarPDF}>Exportar Horário em PDF</button>
+      <button onClick={exportarPDF} className="exportar">
+  Exportar Horário em PDF
+</button>
       {user?.perfil === "Admin" && (
-        <button onClick={() => setMostrandoGestao(true)}
-          style={{ margin: '10px', backgroundColor: '#444', color: 'white', padding: '8px 16px', borderRadius: '6px' }}>
-          Gerir Utilizadores
-        </button>
+        <button onClick={() => setMostrandoGestao(true)} className="gestao">
+  Gerir Utilizadores
+</button>
       )}
       <div className="filtros-vista">
   <select value={vistaAtual} onChange={(e) => {

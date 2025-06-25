@@ -39,8 +39,9 @@ export default function LoginRegister({ onLogin }) {
     }
   };
 
-  return (
-    <div style={{ textAlign: 'center', marginTop: '50px' }}>
+ return (
+  <div className="login-container">
+    <div className="login-box">
       <h2>{isRegistering ? "Criar Conta" : "Login"}</h2>
       <form onSubmit={handleSubmit}>
         {isRegistering && (
@@ -50,32 +51,33 @@ export default function LoginRegister({ onLogin }) {
             value={nome}
             required
             onChange={e => setNome(e.target.value)}
-            style={{ margin: '5px', padding: '8px' }}
+            className="login-input"
           />
-        )}<br />
+        )}
         <input
           type="email"
           placeholder="Email"
           value={email}
           required
           onChange={e => setEmail(e.target.value)}
-          style={{ margin: '5px', padding: '8px' }}
-        /><br />
+          className="login-input"
+        />
         <input
           type="password"
           placeholder="Password"
           value={password}
           required
           onChange={e => setPassword(e.target.value)}
-          style={{ margin: '5px', padding: '8px' }}
-        /><br />
-        <button type="submit" style={{ padding: '10px 20px' }}>
+          className="login-input"
+        />
+        <button type="submit" className="login-button">
           {isRegistering ? "Registar" : "Entrar"}
         </button>
       </form>
-      <button onClick={toggleForm} style={{ marginTop: '10px' }}>
+      <button onClick={toggleForm} className="toggle-button">
         {isRegistering ? "Já tens conta? Faz login" : "Ainda não tens conta? Regista-te"}
       </button>
     </div>
-  );
+  </div>
+);
 }

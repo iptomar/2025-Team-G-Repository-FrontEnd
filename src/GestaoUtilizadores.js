@@ -47,7 +47,6 @@ export default function GestaoUtilizadores() {
           <tr>
             <th>Nome</th>
             <th>Email</th>
-            <th>Perfil</th>
             <th>Pode Gerir Blocos</th>
           </tr>
         </thead>
@@ -56,7 +55,6 @@ export default function GestaoUtilizadores() {
             <tr key={u.id}>
               <td>{u.nome}</td>
               <td>{u.email}</td>
-              <td>{u.perfil}</td>
               <td style={{ textAlign: 'center' }}>
                 <input
                   type="checkbox"
