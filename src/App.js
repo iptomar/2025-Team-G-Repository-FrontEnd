@@ -38,7 +38,7 @@ function App() {
     if (!user) return;
 
     const connection = new signalR.HubConnectionBuilder()
-      .withUrl("https://localhost:7089/horarioHub")
+      .withUrl("https://localhost:44363/horarioHub")
       .withAutomaticReconnect()
       .build();
 

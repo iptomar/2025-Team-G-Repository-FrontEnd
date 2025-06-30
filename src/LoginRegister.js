@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import axios from 'axios';
 
-const API_BASE = 'https://localhost:7089/api';
+const API_BASE = 'https://localhost:44363/api';
 
 export default function LoginRegister({ onLogin }) {
   const [isRegistering, setIsRegistering] = useState(false);

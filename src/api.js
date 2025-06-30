@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const API_BASE = 'https://localhost:7089/api'; // Altera se necessário
+const API_BASE = 'https://localhost:44363/api'; // Altera se necessário
 
 // Buscar blocos existentes da base de dados
 export const fetchBlocos = async () => {
@@ -65,5 +65,5 @@ export const atualizarBloco = async (id, bloco) => {
 };
 
 export const limparAlocacoes = async () => {
-  await axios.post('https://localhost:7089/api/blocos/limpar-alocacoes');
+  await axios.post('https://localhost:44363/api/blocos/limpar-alocacoes');
 };
