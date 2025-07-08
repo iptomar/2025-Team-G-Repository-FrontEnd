@@ -9,6 +9,7 @@
     "@fullcalendar/react": "^6.1.17",
     "@fullcalendar/timegrid": "^6.1.17",
     "@microsoft/signalr": "^8.0.7",
+    "@supabase/supabase-js": "^2.50.3",
     "@testing-library/dom": "^10.4.0",
     "@testing-library/jest-dom": "^6.6.3",
     "@testing-library/react": "^16.2.0",
@@ -20,6 +21,7 @@
     "jspdf": "^3.0.1",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
+    "react-router-dom": "^7.6.3",
     "react-scripts": "5.0.1",
     "web-vitals": "^2.1.4"
   },
